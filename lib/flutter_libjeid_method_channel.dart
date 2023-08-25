@@ -9,6 +9,9 @@ class MethodChannelFlutterLibjeid extends FlutterLibjeidPlatform {
   @visibleForTesting
   final methodChannel = const MethodChannel('flutter_libjeid');
 
+  @visibleForTesting
+  final progressChannel = const EventChannel('flutter_libjeid_progress_stream');
+
   @override
   Future<Map<String, dynamic>> scanRCCard({required String cardNumber}) async {
     final response = await methodChannel.invokeMethod(
@@ -29,5 +32,12 @@ class MethodChannelFlutterLibjeid extends FlutterLibjeidPlatform {
       },
     );
     return Map.from(response);
+  }
+
+  @override
+  Stream<String> get onProgress {
+    return progressChannel.receiveBroadcastStream().cast().map((event) {
+      return event;
+    });
   }
 }

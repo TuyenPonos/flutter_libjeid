@@ -16,9 +16,15 @@ LibJeID (Library for Japanese Electronic ID) is a library for smartphones to acc
 - Verification of authenticity of residence cards and special permanent resident certificates
 
 
-## Sample app
+### Official document 
 
-... Updating
+https://www.osstech.co.jp/download/libjeid/
+
+## Install
+
+
+## How to use
+
 
 ## Contributions
 

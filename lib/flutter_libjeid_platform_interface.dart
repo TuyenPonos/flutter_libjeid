@@ -23,15 +23,24 @@ abstract class FlutterLibjeidPlatform extends PlatformInterface {
     _instance = instance;
   }
 
+  /// Scan RC Card
+  /// Input [cardNumber] ex: 123456789123
   Future<Map<String, dynamic>> scanRCCard({
     required String cardNumber,
   }) {
     return _instance.scanRCCard(cardNumber: cardNumber);
   }
 
+  /// Scan IN Card
+  /// Input [cardPin] ex: 1234
   Future<Map<String, dynamic>> scanINCard({
     required String cardPin,
   }) {
     return _instance.scanINCard(cardPin: cardPin);
+  }
+
+  /// Listen progress event
+  Stream<String> get onProgress {
+    return instance.onProgress;
   }
 }

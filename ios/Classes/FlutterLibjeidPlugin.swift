@@ -4,20 +4,20 @@ import libjeid
 import CoreNFC
 
 @available(iOS 13.0, *)
-public class FlutterLibjeidPlugin: NSObject, FlutterPlugin, NFCTagReaderSessionDelegate {
+public class FlutterLibjeidPlugin: NSObject, FlutterPlugin, NFCTagReaderSessionDelegate, FlutterStreamHandler {
+    
     let notInputCardNumber = "not_input_card_number"
     let notInputCardPin = "not_input_card_pin"
-    let sessionUnavailable = "session_unavailable"
-    let sessionTimeout = "session_timeout"
-    let sessionError = "session_error"
-    let connectError = "connect_error"
-    let invalidKey = "invalid_key"
-    let invalidCard = "invalid_card"
+    let nfcConnectError = "nfc_connect_error"
+    let incorrectCardNumber = "incorrect_card_number"
+    let incorrectCardPin = "incorrect_card_pin"
+    let invalidCardType = "invalid_card_type"
     let unknown = "unknown"
     let badArguments = "bad_arguments"
     
     var session: NFCTagReaderSession?
     var callback: FlutterResult?
+    var progressSink: FlutterEventSink?
     private var RCCardNumber: String?
     private var INCardPin: String?
     private var cardType: CardType?
@@ -25,7 +25,10 @@ public class FlutterLibjeidPlugin: NSObject, FlutterPlugin, NFCTagReaderSessionD
     public static func register(with registrar: FlutterPluginRegistrar) {
         let channel = FlutterMethodChannel(name: "flutter_libjeid", binaryMessenger: registrar.messenger())
         let instance = FlutterLibjeidPlugin()
+        let progressChanged = FlutterEventChannel(name: "flutter_libjeid_progress_stream", binaryMessenger: registrar.messenger())
+        progressChanged.setStreamHandler(instance)
         registrar.addMethodCallDelegate(instance, channel: channel)
+        registrar.addApplicationDelegate(instance)
     }
     
     public func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
@@ -39,12 +42,12 @@ public class FlutterLibjeidPlugin: NSObject, FlutterPlugin, NFCTagReaderSessionD
                     return
                 }
                 if(!NFCReaderSession.readingAvailable){
-                    result(FlutterError(code: sessionUnavailable, message: "NFC Session is unavailable", details: nil))
+                    result(FlutterError(code: nfcConnectError, message: "NFC Session is unavailable", details: nil))
                     return
                 }
                 self.RCCardNumber = cardNumber
                 if let _ = self.session {
-                    result(FlutterError(code: sessionTimeout, message: "Please wait and try again", details: nil))
+                    result(FlutterError(code: nfcConnectError, message: "Please wait and try again", details: nil))
                 } else {
                     self.session = NFCTagReaderSession(pollingOption: [.iso14443], delegate: self, queue: DispatchQueue.global())
                     self.session?.alertMessage = "カードに端末をかざしてください"
@@ -63,12 +66,12 @@ public class FlutterLibjeidPlugin: NSObject, FlutterPlugin, NFCTagReaderSessionD
                     return
                 }
                 if(!NFCReaderSession.readingAvailable){
-                    result(FlutterError(code: sessionUnavailable, message: "NFC Session is unavailable", details: nil))
+                    result(FlutterError(code: nfcConnectError, message: "NFC Session is unavailable", details: nil))
                     return
                 }
                 self.INCardPin = cardPin
                 if let _ = self.session {
-                    result(FlutterError(code: sessionTimeout, message: "Please wait and try again", details: nil))
+                    result(FlutterError(code: nfcConnectError, message: "Please wait and try again", details: nil))
                 } else {
                     self.session = NFCTagReaderSession(pollingOption: [.iso14443], delegate: self, queue: DispatchQueue.global())
                     self.session?.alertMessage = "カードに端末をかざしてください"
@@ -84,6 +87,17 @@ public class FlutterLibjeidPlugin: NSObject, FlutterPlugin, NFCTagReaderSessionD
         }
     }
     
+    public func onListen(withArguments arguments: Any?, eventSink events: @escaping FlutterEventSink) -> FlutterError? {
+        progressSink = events
+        return nil
+    }
+    
+    public func onCancel(withArguments arguments: Any?) -> FlutterError? {
+        progressSink = nil
+        return nil
+    }
+    
+    
     public func tagReaderSessionDidBecomeActive(_ session: NFCTagReaderSession) {
         print("tagReaderSessionDidBecomeActive: \(Thread.current)")
         self.cardType = nil
@@ -94,9 +108,9 @@ public class FlutterLibjeidPlugin: NSObject, FlutterPlugin, NFCTagReaderSessionD
         if let nfcError = error as? NFCReaderError {
             if nfcError.code != .readerSessionInvalidationErrorUserCanceled {
                 print("tagReaderSession error: " + nfcError.localizedDescription)
-                self.callback?(FlutterError(code: sessionError, message: "Session error: " + nfcError.localizedDescription, details: nil))
+                self.callback?(FlutterError(code: nfcConnectError, message: "Session error: " + nfcError.localizedDescription, details: nil))
                 if nfcError.code == .readerSessionInvalidationErrorSessionTerminatedUnexpectedly {
-                    self.callback?(FlutterError(code: sessionTimeout, message: "Please wait and try again", details: nil))
+                    self.callback?(FlutterError(code: nfcConnectError, message: "Please wait and try again", details: nil))
                 }
             }
         } else {
@@ -115,7 +129,7 @@ public class FlutterLibjeidPlugin: NSObject, FlutterPlugin, NFCTagReaderSessionD
             print("connect thread: \(Thread.current)")
             if error != nil {
                 print(error!)
-                self.callback?(FlutterError(code: self.connectError, message: "Connect error", details: nil))
+                self.callback?(FlutterError(code: self.nfcConnectError, message: "Connect error", details: nil))
                 session.invalidate(errorMessage: "接続エラー")
                 return
             }
@@ -127,60 +141,65 @@ public class FlutterLibjeidPlugin: NSObject, FlutterPlugin, NFCTagReaderSessionD
                 self.readINCard(session, didDetect: tag, msgReadingHeader: msgReadingHeader, msgErrorHeader: msgErrorHeader)
                 break
             default:
-                self.callback?(FlutterError(code: self.invalidCard, message: "CardType invalid", details: nil))
+                self.callback?(FlutterError(code: self.invalidCardType, message: "CardType invalid", details: nil))
                 break
             }
         }
     }
     
-    
-    
+    func logProgressMessage(message: String){
+        guard let eventSink = progressSink else { return }
+        eventSink(message)
+    }
+ 
     func readRCCard(_ session: NFCTagReaderSession, didDetect tag: NFCTag, msgReadingHeader: String, msgErrorHeader: String) {
         do {
-            let reader = try JeidReader(tag)
-            session.alertMessage = "読み取り開始..."
-            let type = try reader.detectCardType()
-            if (type != CardType.RC) {
-                self.callback?(FlutterError(code: self.invalidCard, message:"\(msgErrorHeader)It is not a residence card/special permanent resident certificate", details: nil))
-                session.invalidate(errorMessage: "\(msgErrorHeader)在留カード/特別永住者証明書ではありません")
-                return
-            }
-            print("thread: \(Thread.current)")
-            let ap = try reader.selectRC()
-            session.alertMessage = "\(msgReadingHeader)共通データ要素、カード種別..."
-            let freeFiles = try ap.readFiles()
-            session.alertMessage += "成功"
-            var dataDict = Dictionary<String, Any>()
-            let commonData = try freeFiles.getCommonData()
-            dataDict["rc_common"] = commonData.description
-            let cardType = try freeFiles.getCardType()
-            dataDict["rc_card_type_description"] = cardType.description
             if (self.RCCardNumber == nil || self.RCCardNumber!.isEmpty) {
                 self.callback?(FlutterError(code: self.notInputCardNumber, message: "Please input a valid card number", details: nil))
                 session.invalidate(errorMessage: "\(msgErrorHeader)在留カード等の番号が入力されていません")
                 return
             }
+            let reader = try JeidReader(tag)
+            session.alertMessage = "読み取り開始..."
+            logProgressMessage(message: session.alertMessage)
+            // detect card type
+            let type = try reader.detectCardType()
+            if (type != CardType.RC) {
+                self.callback?(FlutterError(code: self.invalidCardType, message:"\(msgErrorHeader)It is not a residence card/special permanent resident certificate", details: nil))
+                session.invalidate(errorMessage: "\(msgErrorHeader)在留カード/特別永住者証明書ではありません")
+                return
+            }
+            print("thread: \(Thread.current)")
+            let ap = try reader.selectRC()
+            // verify card number
             do {
-                let rcKey = try RCKey(self.RCCardNumber!)
                 session.alertMessage = "\(msgReadingHeader)SM開始&認証..."
+                logProgressMessage(message: session.alertMessage)
+                let rcKey = try RCKey(self.RCCardNumber!)
                 try ap.startAC(rcKey)
                 session.alertMessage += "成功"
+                logProgressMessage(message: session.alertMessage)
             } catch let jeidError as JeidError {
                 switch jeidError {
                 case .invalidKey:
                     session.invalidate(errorMessage: "\(msgErrorHeader)認証失敗")
-                    self.callback?(FlutterError(code: self.invalidKey, message: "Invalid key", details: jeidError))
+                    self.callback?(FlutterError(code: self.incorrectCardNumber, message: "Incorrect card number", details: jeidError))
                     return
                 default:
                     throw jeidError
                 }
             }
-            
-            session.alertMessage = "\(msgReadingHeader)ファイルの読み出し...."
+            // read common data
+            session.alertMessage = "\(msgReadingHeader)共通データ要素、カード種別..."
+            logProgressMessage(message: session.alertMessage)
             let files = try ap.readFiles()
-            
             session.alertMessage += "成功"
-            
+            logProgressMessage(message: session.alertMessage)
+            var dataDict = Dictionary<String, Any>()
+            let commonData = try files.getCommonData()
+            dataDict["rc_common"] = commonData.description
+            let cardType = try files.getCardType()
+            dataDict["rc_card_type_description"] = cardType.description
             if let type = cardType.type {
                 dataDict["rc_card_type"] = type
             }
@@ -193,16 +212,32 @@ public class FlutterLibjeidPlugin: NSObject, FlutterPlugin, NFCTagReaderSessionD
                 let src = "\(photoImage.base64EncodedString())"
                 dataDict["rc_photo"] = src
             }
+            // if is residence card
+            if cardType.type == "1" {
+                let comprehensivePermission = try files.getComprehensivePermission()
+                dataDict["comprehensive_permission"] = comprehensivePermission.description
+                let individualPermission = try files.getIndividualPermission()
+                dataDict["individual_permission"] = individualPermission.description
+                let updateStatus = try files.getUpdateStatus()
+                dataDict["update_status"] = updateStatus.description
+            }
+            let signature = try files.getSignature()
+            dataDict["rc_signature"] = signature.description
+            let address = try files.getAddress()
+            dataDict["rc_address"] = address.description
             // authenticity verification
             do {
+                session.alertMessage = "真正性検証"
+                logProgressMessage(message: session.alertMessage)
                 let result = try files.validate()
                 dataDict["rc_valid"] = result.isValid
             } catch JeidError.unsupportedOperation {
                 dataDict["rc_valid"] = NSNull()
             } catch {
-                self.callback?(FlutterError(code: self.unknown, message: "Unknown error", details: error))
+                print(error)
             }
             session.alertMessage = "読み取り完了"
+            logProgressMessage(message: session.alertMessage)
             session.invalidate()
             self.callback?(dataDict)
         }
@@ -221,31 +256,36 @@ public class FlutterLibjeidPlugin: NSObject, FlutterPlugin, NFCTagReaderSessionD
             }
             let reader = try JeidReader(tag)
             session.alertMessage = "読み取り開始..."
+            logProgressMessage(message: session.alertMessage)
             let cardType = try reader.detectCardType()
             if (cardType != CardType.IN) {
-                self.callback?(FlutterError(code: self.invalidCard, message:"\(msgErrorHeader)It is not my number card", details: nil))
+                self.callback?(FlutterError(code: self.invalidCardType, message:"\(msgErrorHeader)It is not my number card", details: nil))
                 session.invalidate(errorMessage: "\(msgErrorHeader)マイナンバーカードではありません")
                 return
             }
             print("thread: \(Thread.current)")
+            session.alertMessage = "\(msgReadingHeader)暗証番号による認証..."
             let textAp = try reader.selectINText()
             do {
-                session.alertMessage = "\(msgReadingHeader)暗証番号による認証..."
+                logProgressMessage(message: session.alertMessage)
                 try textAp.verifyPin(self.INCardPin!)
                 session.alertMessage += "成功"
+                logProgressMessage(message: session.alertMessage)
             } catch let jeidError as JeidError {
                 switch jeidError {
                 case .invalidKey:
                     session.invalidate(errorMessage: "\(msgErrorHeader)認証失敗")
-                    self.callback?(FlutterError(code: self.invalidKey, message: "Invalid key", details: jeidError))
+                    self.callback?(FlutterError(code: self.incorrectCardPin, message: "Incorrect card pin", details: jeidError))
                     return
                 default:
                     throw jeidError
                 }
             }
             session.alertMessage = "\(msgReadingHeader)券面入力補助AP内の情報..."
+            logProgressMessage(message: session.alertMessage)
             let textFiles = try textAp.readFiles()
             session.alertMessage += "成功"
+            logProgressMessage(message: session.alertMessage)
             var dataDict = Dictionary<String, Any>()
             do {
                 let textMyNumber = try textFiles.getMyNumber()
@@ -256,7 +296,7 @@ public class FlutterLibjeidPlugin: NSObject, FlutterPlugin, NFCTagReaderSessionD
                 // 無償版の場合、INTextFiles#getMyNumber()でJeidError.unsupportedOperationが返ります
                 dataDict["card_mynumber"] = NSNull()
             } catch {
-                self.callback?(FlutterError(code: self.unknown, message: "Unknown error", details: error))
+                print(error)
             }
             let textAttrs = try textFiles.getAttributes()
             if let name = textAttrs.name {
@@ -272,21 +312,27 @@ public class FlutterLibjeidPlugin: NSObject, FlutterPlugin, NFCTagReaderSessionD
                 dataDict["card_address"] = address
             }
             do {
+                session.alertMessage = "券面入力補助APの真正性検証"
+                logProgressMessage(message: session.alertMessage)
                 let textApValidationResult = try textFiles.validate()
                 dataDict["validation_result"] = textApValidationResult.isValid
             } catch JeidError.unsupportedOperation {
                 // 無償版の場合、INTextFiles#validate()でJeidError.unsupportedOperationが返ります
                 dataDict["validation_result"] = NSNull()
             } catch {
-                self.callback?(FlutterError(code: self.unknown, message: "Unknown error", details: error))
+                print(error)
             }
-            let visualAp = try reader.selectINVisual()
             session.alertMessage = "\(msgReadingHeader)暗証番号による認証..."
+            logProgressMessage(message: session.alertMessage)
+            let visualAp = try reader.selectINVisual()
             try visualAp.verifyPin(self.INCardPin!)
             session.alertMessage += "成功"
+            logProgressMessage(message: session.alertMessage)
             session.alertMessage = "\(msgReadingHeader)券面AP内の情報..."
+            logProgressMessage(message: session.alertMessage)
             let visualFiles = try visualAp.readFiles()
             session.alertMessage += "成功"
+            logProgressMessage(message: session.alertMessage)
             let visualEntries = try visualFiles.getEntries()
             if let expireDate = visualEntries.expireDate {
                 dataDict["card_expire"] = expireDate
@@ -309,6 +355,19 @@ public class FlutterLibjeidPlugin: NSObject, FlutterPlugin, NFCTagReaderSessionD
                 let src = "\(photoData.base64EncodedString())"
                 dataDict["card_photo"] = src
             }
+            
+            do {
+                session.alertMessage = "券面APの真正性検証"
+                logProgressMessage(message: session.alertMessage)
+                let visualApValidationResult = try visualFiles.validate()
+                dataDict["visualap_validation_result"] = visualApValidationResult.isValid
+            } catch JeidError.unsupportedOperation {
+                // 無償版の場合、INVisualFiles#validate()でJeidError.unsupportedOperationが返ります
+                dataDict["visualap_validation_result"] = NSNull()
+            }catch {
+                print(error)
+            }
+            
             do {
                 let visualMyNumber = try visualFiles.getMyNumber()
                 if let myNumberImage = visualMyNumber.myNumber {
@@ -319,23 +378,42 @@ public class FlutterLibjeidPlugin: NSObject, FlutterPlugin, NFCTagReaderSessionD
                 // 無償版の場合、INVisualFiles#getMyNumber()でJeidError.unsupportedOperationが返ります
                 dataDict["card_mynumber_image"] = NSNull()
             }catch {
-                self.callback?(FlutterError(code: self.unknown, message: "Unknown error", details: error))
+                print(error)
             }
-            do {
-                let visualApValidationResult = try visualFiles.validate()
-                dataDict["visualap_validation_result"] = visualApValidationResult.isValid
-            } catch JeidError.unsupportedOperation {
-                // 無償版の場合、INVisualFiles#validate()でJeidError.unsupportedOperationが返ります
-                dataDict["visualap_validation_result"] = NSNull()
-            }catch {
-                self.callback?(FlutterError(code: self.unknown, message: "Unknown error", details: error))
-            }
-            
             session.alertMessage = "読み取り完了"
+            logProgressMessage(message: session.alertMessage)
             session.invalidate()
             self.callback?(dataDict)
         }catch {
             session.invalidate(errorMessage: session.alertMessage + "失敗")
         }
+    }
+    
+    func handleInvalidPinError(_ jeidError: JeidError) {
+        let title: String
+        let message: String
+        guard case .invalidPin(let counter) = jeidError else {
+            print("unexpected error: \(jeidError)")
+            return
+        }
+        if (jeidError.isBlocked!) {
+            title = "暗証番号がブロックされています"
+            message = "市区町村窓口でブロック解除の申請を行ってください。"
+        } else {
+            title = "暗証番号が間違っています"
+            message = "暗証番号を正しく入力してください。\n"
+            + "残り\(counter)回間違えるとブロックされます。"
+        }
+        print(title)
+        print(message)
+        // TO-DO: Handle title and message
+    }
+    
+    func handleInvalidKeyError(_ jeidError: JeidError) {
+        let title = "番号が間違っています"
+        let message = "正しい在留カード番号または特別永住者証明書番号を入力してください"
+        print(title)
+        print(message)
+        // TO-DO: Handle title and message
     }
 }

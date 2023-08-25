@@ -15,6 +15,9 @@ class MockFlutterLibjeidPlatform
   Future<Map<String, dynamic>> scanINCard({required String cardPin}) {
     throw UnimplementedError();
   }
+
+  @override
+  Stream<String> get onProgress => throw UnimplementedError();
 }
 
 void main() {
