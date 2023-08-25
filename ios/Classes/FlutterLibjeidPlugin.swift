@@ -100,7 +100,6 @@ public class FlutterLibjeidPlugin: NSObject, FlutterPlugin, NFCTagReaderSessionD
     
     public func tagReaderSessionDidBecomeActive(_ session: NFCTagReaderSession) {
         print("tagReaderSessionDidBecomeActive: \(Thread.current)")
-        self.cardType = nil
     }
     
     public func tagReaderSession(_ session: NFCTagReaderSession, didInvalidateWithError error: Error) {

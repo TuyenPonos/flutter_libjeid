@@ -2,6 +2,10 @@ LibJeID (Library for Japanese Electronic ID) is a library for smartphones to acc
 
 ## Features
 
+### Official document
+
+<https://www.osstech.co.jp/download/libjeid/>
+
 ### Android version function list
 
 - Reading my number card
@@ -15,10 +19,9 @@ LibJeID (Library for Japanese Electronic ID) is a library for smartphones to acc
 - Reading of residence cards and special permanent resident certificates
 - Verification of authenticity of residence cards and special permanent resident certificates
 
+### Dictionary in free version and production version
 
-### Official document 
-
-https://www.osstech.co.jp/download/libjeid/
+![available_data](available_data.png)
 
 ## Install
 
