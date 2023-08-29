@@ -17,7 +17,9 @@ class MockFlutterLibjeidPlatform
   }
 
   @override
-  Stream<String> get onProgress => throw UnimplementedError();
+  Future<void> stopScan() {
+    throw UnimplementedError();
+  }
 }
 
 void main() {

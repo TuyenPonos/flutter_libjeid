@@ -25,26 +25,12 @@ class _MyAppState extends State<MyApp> with SingleTickerProviderStateMixin {
   final TextEditingController _cardPinController = TextEditingController();
   late final TabController _tabController;
   int _tabIndex = 0;
-  late final StreamSubscription _progressSub;
-  String? _progress;
 
   @override
   void initState() {
     _tabController = TabController(length: 2, vsync: this);
-    _progressSub = _flutterLibjeidPlugin.onProgress.listen((event) {
-      if (mounted) {
-        setState(() {
-          _progress = event;
-        });
-      }
-    });
+    _cardNumberController.text = '123456789123';
     super.initState();
-  }
-
-  @override
-  void dispose() {
-    _progressSub.cancel();
-    super.dispose();
   }
 
   Future<void> startScanRCCard() async {
@@ -76,6 +62,8 @@ class _MyAppState extends State<MyApp> with SingleTickerProviderStateMixin {
           _error = e.toString();
         });
       }
+    } finally {
+      _flutterLibjeidPlugin.stopScan();
     }
   }
 
@@ -108,6 +96,8 @@ class _MyAppState extends State<MyApp> with SingleTickerProviderStateMixin {
           _error = e.toString();
         });
       }
+    } finally {
+      _flutterLibjeidPlugin.stopScan();
     }
   }
 
@@ -184,10 +174,6 @@ class _MyAppState extends State<MyApp> with SingleTickerProviderStateMixin {
                 duration: const Duration(milliseconds: 200),
               ),
               const SizedBox(height: 20),
-              if (_progress?.isNotEmpty ?? false)
-                Text(
-                  'Progressing: $_progress',
-                ),
               if (_error?.isNotEmpty ?? false)
                 Text(
                   'Error: $_error',
@@ -329,5 +315,19 @@ class _INCardResult extends StatelessWidget {
         ],
       ],
     );
+  }
+}
+
+class _ProcessingDialog extends StatefulWidget {
+  const _ProcessingDialog({super.key});
+
+  @override
+  State<_ProcessingDialog> createState() => _ProcessingDialogState();
+}
+
+class _ProcessingDialogState extends State<_ProcessingDialog> {
+  @override
+  Widget build(BuildContext context) {
+    return Container();
   }
 }

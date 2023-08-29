@@ -8,4 +8,9 @@
 
 ## 0.0.3
 
-* Fix bugs
+* Fix card type not found ios
+* Fix crash on android
+
+## 0.0.4
+
+* Trigger new version ios

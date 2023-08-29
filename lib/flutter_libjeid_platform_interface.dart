@@ -39,8 +39,8 @@ abstract class FlutterLibjeidPlatform extends PlatformInterface {
     return _instance.scanINCard(cardPin: cardPin);
   }
 
-  /// Listen progress event
-  Stream<String> get onProgress {
-    return instance.onProgress;
+  /// Stop all card scanning
+  Future<void> stopScan() {
+    return _instance.stopScan();
   }
 }

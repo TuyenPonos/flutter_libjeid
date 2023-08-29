@@ -8,6 +8,7 @@ import java.io.ByteArrayOutputStream;
 import java.util.HashMap;
 
 import io.flutter.Log;
+import io.flutter.plugin.common.EventChannel;
 import jp.co.osstech.libjeid.CardType;
 import jp.co.osstech.libjeid.InvalidACKeyException;
 import jp.co.osstech.libjeid.JeidReader;
@@ -29,24 +30,28 @@ public class RCReaderTask implements Runnable {
     private static final String TAG = FlutterLibjeidPlugin.TAG;
     private FlutterLibjeidPlugin flutterPlugin;
     private Tag nfcTag;
+    private String cardNumber;
+    private ProgressCallback progressCallback;
 
-    public RCReaderTask(FlutterLibjeidPlugin flutterPlugin, Tag nfcTag) {
-        this.flutterPlugin = flutterPlugin;
+    public RCReaderTask(FlutterLibjeidPlugin plugin, Tag nfcTag, String cardNumber, ProgressCallback callback) {
+        this.flutterPlugin = plugin;
         this.nfcTag = nfcTag;
+        this.cardNumber = cardNumber;
+        this.progressCallback = callback;
     }
 
     @Override
     public void run() {
         String msgReadingHeader = "読み取り中\n";
         String msgErrorHeader = "エラー\n";
-        if (flutterPlugin.cardNumber == null || flutterPlugin.cardNumber.isEmpty()) {
-            flutterPlugin.callback.error(flutterPlugin.notInputCardNumber, "Please input a valid card number", null);
-            return;
-        }
-        flutterPlugin.logProgressMessage("読み取り開始、カードを離さないでください");
         try {
+            if (cardNumber == null || cardNumber.isEmpty()) {
+                flutterPlugin.callback.error(flutterPlugin.notInputCardNumber, "Please input a valid card number", null);
+                return;
+            }
+            progressCallback.onProgress("読み取り開始、カードを離さないでください");
             JeidReader reader = new JeidReader(nfcTag);
-            flutterPlugin.logProgressMessage(msgReadingHeader + "読み取り開始...");
+            progressCallback.onProgress(msgReadingHeader + "読み取り開始...");
             CardType type = reader.detectCardType();
             if (type != CardType.RC) {
                 flutterPlugin.callback.error(flutterPlugin.invalidCardType, msgErrorHeader + "It is not a residence card/special permanent resident certificate", null);
@@ -54,18 +59,18 @@ public class RCReaderTask implements Runnable {
             }
             ResidenceCardAP ap = reader.selectResidenceCardAP();
             try {
-                flutterPlugin.logProgressMessage(msgReadingHeader + "SM開始&認証...");
-                RCKey rckey = new RCKey(flutterPlugin.cardNumber);
+                progressCallback.onProgress(msgReadingHeader + "SM開始&認証...");
+                RCKey rckey = new RCKey(cardNumber);
                 ap.startAC(rckey);
-                flutterPlugin.logProgressMessage(msgReadingHeader + "SM開始&認証..." + "成功");
+                progressCallback.onProgress(msgReadingHeader + "SM開始&認証..." + "成功");
             } catch (InvalidACKeyException e) {
                 flutterPlugin.callback.error(flutterPlugin.incorrectCardNumber, "Incorrect card number", null);
                 return;
             }
-            flutterPlugin.logProgressMessage(msgReadingHeader + "共通データ要素、カード種別...");
+            progressCallback.onProgress(msgReadingHeader + "共通データ要素、カード種別...");
             RCCardType cardType = ap.readCardType();
             RCFiles files = ap.readFiles();
-            flutterPlugin.logProgressMessage(msgReadingHeader + "共通データ要素、カード種別..."+ "成功");
+            progressCallback.onProgress(msgReadingHeader + "共通データ要素、カード種別..." + "成功");
             HashMap<String, Object> obj = new HashMap();
             obj.put("rc_card_type", cardType.getType());
             RCCardEntries cardEntries = files.getCardEntries();
@@ -100,7 +105,7 @@ public class RCReaderTask implements Runnable {
 
             // authenticity verification
             try {
-                flutterPlugin.logProgressMessage("真正性検証");
+                progressCallback.onProgress("真正性検証");
                 ValidationResult result = files.validate();
                 obj.put("rc_valid", result.isValid());
             } catch (UnsupportedOperationException e) {
@@ -110,7 +115,7 @@ public class RCReaderTask implements Runnable {
             } catch (Exception e) {
                 Log.e(TAG, "error", e);
             }
-            flutterPlugin.logProgressMessage(msgReadingHeader + "読み取り完了");
+            progressCallback.onProgress(msgReadingHeader + "読み取り完了");
             flutterPlugin.callback.success(obj);
         } catch (Exception e) {
             Log.e(TAG, "error", e);

@@ -4,6 +4,7 @@ import io.flutter.Log;
 import io.flutter.embedding.engine.plugins.activity.ActivityAware;
 
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
@@ -13,6 +14,10 @@ import android.nfc.tech.IsoDep;
 import android.nfc.tech.NfcB;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
+import android.view.View;
+import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 
@@ -21,14 +26,13 @@ import java.util.concurrent.Executors;
 
 import io.flutter.embedding.engine.plugins.FlutterPlugin;
 import io.flutter.embedding.engine.plugins.activity.ActivityPluginBinding;
-import io.flutter.plugin.common.EventChannel;
 import io.flutter.plugin.common.MethodCall;
 import io.flutter.plugin.common.MethodChannel;
 import io.flutter.plugin.common.MethodChannel.MethodCallHandler;
 import io.flutter.plugin.common.PluginRegistry;
 import jp.co.osstech.libjeid.CardType;
 
-public class FlutterLibjeidPlugin implements FlutterPlugin, MethodCallHandler, TagDiscoveredListener, ActivityAware, PluginRegistry.NewIntentListener, EventChannel.StreamHandler {
+public class FlutterLibjeidPlugin implements FlutterPlugin, MethodCallHandler, ActivityAware, PluginRegistry.NewIntentListener {
     protected final String notInputCardNumber = "not_input_card_number";
     protected final String notInputCardPin = "not_input_card_pin";
     protected final String nfcConnectError = "nfc_connect_error";
@@ -39,8 +43,6 @@ public class FlutterLibjeidPlugin implements FlutterPlugin, MethodCallHandler, T
 
     protected MethodChannel.Result callback;
     private MethodChannel channel;
-    private EventChannel.EventSink progressSink;
-    private EventChannel progressChannel;
 
     public static final String TAG = "FlutterLibjeidPlugin";
     protected NfcAdapter nfcAdapter;
@@ -55,19 +57,19 @@ public class FlutterLibjeidPlugin implements FlutterPlugin, MethodCallHandler, T
     // Disable NFC reading in viewer and menu screen
     // Also, while displaying the dialog with a PIN mistake
     // flag to prevent continuous reads from happening
-    protected boolean enableNFC = false;
     private CardType cardType;
     protected String cardNumber;
     protected String cardPin;
 
+    AlertDialog alertDialog;
+    private Handler uiThreadHandler = new Handler(Looper.getMainLooper());
 
     @Override
     public void onAttachedToEngine(@NonNull FlutterPlugin.FlutterPluginBinding flutterPluginBinding) {
         channel = new MethodChannel(flutterPluginBinding.getBinaryMessenger(), "flutter_libjeid");
         channel.setMethodCallHandler(this);
-        progressChannel = new EventChannel(flutterPluginBinding.getBinaryMessenger(), "flutter_libjeid_progress_stream");
-        progressChannel.setStreamHandler(this);
         this.context = flutterPluginBinding.getApplicationContext();
+        nfcAdapter = NfcAdapter.getDefaultAdapter(this.context);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             // Android 8.0 or higher uses ReaderMode
             this.nfcMode = NFC_READER_MODE;
@@ -85,6 +87,14 @@ public class FlutterLibjeidPlugin implements FlutterPlugin, MethodCallHandler, T
     @Override
     public void onMethodCall(@NonNull MethodCall call, @NonNull MethodChannel.Result result) {
         this.callback = result;
+        if (activity == null) {
+            result.error(unknown, "Cannot call method when not attached to activity", null);
+            return;
+        }
+        if (nfcAdapter == null || !nfcAdapter.isEnabled()) {
+            result.error(nfcConnectError, "NFC is unavailable", null);
+            return;
+        }
         switch (call.method) {
             case "scanRCCard":
                 String cardNumber = call.argument("card_number");
@@ -93,7 +103,7 @@ public class FlutterLibjeidPlugin implements FlutterPlugin, MethodCallHandler, T
                     return;
                 }
                 this.cardType = CardType.RC;
-                this.enableNFC = true;
+                this.cardNumber = cardNumber;
                 startScan();
                 break;
             case "scanINCard":
@@ -103,7 +113,7 @@ public class FlutterLibjeidPlugin implements FlutterPlugin, MethodCallHandler, T
                     return;
                 }
                 this.cardType = CardType.IN;
-                this.enableNFC = true;
+                this.cardPin = cardPin;
                 startScan();
                 break;
             case "stopScan":
@@ -111,7 +121,6 @@ public class FlutterLibjeidPlugin implements FlutterPlugin, MethodCallHandler, T
                 this.cardNumber = null;
                 this.cardPin = null;
                 this.cardType = null;
-                this.enableNFC = false;
                 break;
             default:
                 this.cardType = null;
@@ -120,34 +129,18 @@ public class FlutterLibjeidPlugin implements FlutterPlugin, MethodCallHandler, T
     }
 
     private void startScan() {
-        nfcAdapter = NfcAdapter.getDefaultAdapter(context);
         if (nfcAdapter == null) {
-            this.callback.error(nfcConnectError, "NFC Adapter not found", null);
+            this.callback.error(nfcConnectError, "NFC is unavailable", null);
             return;
         }
+        logProgressMessage("カードに端末をかざしてください");
         if (this.nfcMode == NFC_READER_MODE) {
-            Log.d(TAG, "NFC mode: ReaderMode " + this.enableNFC);
-            if (!this.enableNFC) {
-                // Disable NFC reading in menu screens and viewers
-                // If you don't do this, reading in normal mode (OS standard) will be enabled
-                nfcAdapter.enableReaderMode(activity, null, NfcAdapter.STATE_OFF, null);
-                return;
-            }
             Bundle options = new Bundle();
             nfcAdapter.enableReaderMode(activity,
-                    new NfcAdapter.ReaderCallback() {
-                        @Override
-                        public void onTagDiscovered(Tag tag) {
-                            onTagDiscovered(tag);
-                        }
-                    },
-                    NfcAdapter.FLAG_READER_NFC_B | NfcAdapter.FLAG_READER_SKIP_NDEF_CHECK,
+                    tag -> FlutterLibjeidPlugin.this.onTagDiscovered(tag),
+                    NfcAdapter.FLAG_READER_NFC_B | NfcAdapter.FLAG_READER_SKIP_NDEF_CHECK | NfcAdapter.FLAG_READER_NFC_A,
                     options);
         } else {
-            Log.d(TAG, "NFC mode: ForegroundDispatch " + this.enableNFC);
-            if (!this.enableNFC) {
-                return;
-            }
             Intent intent = new Intent(context, this.getClass());
             intent.setFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP);
             PendingIntent pendingIntent = PendingIntent.getActivity(context, 0, intent, 0);
@@ -160,6 +153,9 @@ public class FlutterLibjeidPlugin implements FlutterPlugin, MethodCallHandler, T
     }
 
     private void stopScan() {
+        if(alertDialog != null && alertDialog.isShowing()){
+            alertDialog.hide();
+        }
         if (nfcAdapter == null) {
             return;
         }
@@ -170,31 +166,20 @@ public class FlutterLibjeidPlugin implements FlutterPlugin, MethodCallHandler, T
         }
     }
 
-    @Override
     public void onTagDiscovered(Tag tag) {
-        Log.d(TAG, getClass().getSimpleName() + ": Tag Discovered");
-        if (!this.enableNFC) {
-            Log.d(TAG, getClass().getSimpleName() + ": NFC disabled.");
-            this.callback.error(nfcConnectError, "NFC disabled", null);
-            return;
-        }
-        if (tag == null) {
-            Log.d(TAG, getClass().getSimpleName() + ": NFC Adapter not found");
-            this.callback.error(nfcConnectError, "NFC Adapter not found", null);
-            return;
-        }
+        Log.d(TAG, getClass().getSimpleName() + ": Tag Discovered - " + tag.toString());
         if (this.cardType == null) {
             this.callback.error(invalidCardType, "Card type not found", null);
             return;
         }
         switch (this.cardType) {
             case RC:
-                RCReaderTask rcTask = new RCReaderTask(this, tag);
+                RCReaderTask rcTask = new RCReaderTask(FlutterLibjeidPlugin.this, tag, this.cardNumber, FlutterLibjeidPlugin.this::logProgressMessage);
                 ExecutorService rxExec = Executors.newSingleThreadExecutor();
                 rxExec.submit(rcTask);
                 break;
             case IN:
-                INReaderTask inTask = new INReaderTask(this, tag);
+                INReaderTask inTask = new INReaderTask(FlutterLibjeidPlugin.this, tag, this.cardPin, FlutterLibjeidPlugin.this::logProgressMessage);
                 ExecutorService inExec = Executors.newSingleThreadExecutor();
                 inExec.submit(inTask);
                 break;
@@ -206,11 +191,19 @@ public class FlutterLibjeidPlugin implements FlutterPlugin, MethodCallHandler, T
     @Override
     public void onAttachedToActivity(@NonNull ActivityPluginBinding binding) {
         this.activity = binding.getActivity();
+        View view = this.activity
+                .getLayoutInflater()
+                .inflate(R.layout.progress_dialog, null);
+        alertDialog = new AlertDialog.Builder(this.activity, AlertDialog.THEME_DEVICE_DEFAULT_LIGHT )
+                .setCancelable(false)
+                .setOnCancelListener(dialog -> startScan())
+                .setView(view)
+                .create();
     }
 
     @Override
     public void onDetachedFromActivityForConfigChanges() {
-
+        // no op
     }
 
     @Override
@@ -220,7 +213,7 @@ public class FlutterLibjeidPlugin implements FlutterPlugin, MethodCallHandler, T
 
     @Override
     public void onDetachedFromActivity() {
-
+        // no op
     }
 
     @Override
@@ -231,16 +224,13 @@ public class FlutterLibjeidPlugin implements FlutterPlugin, MethodCallHandler, T
     }
 
     public void logProgressMessage(String message) {
-        this.progressSink.success(message);
-    }
-
-    @Override
-    public void onListen(Object arguments, EventChannel.EventSink events) {
-        this.progressSink = events;
-    }
-
-    @Override
-    public void onCancel(Object arguments) {
-        this.progressSink = null;
+        Log.i(TAG, message);
+        if (alertDialog != null && !alertDialog.isShowing()) {
+            alertDialog.show();
+        }
+        if (alertDialog != null && alertDialog.isShowing()) {
+            TextView tv_message = (TextView) alertDialog.findViewById(R.id.progress_message);
+            uiThreadHandler.post(() -> tv_message.setText(message));
+        }
     }
 }

@@ -27,41 +27,45 @@ public class INReaderTask implements Runnable {
     private static final String TAG = FlutterLibjeidPlugin.TAG;
     private FlutterLibjeidPlugin flutterPlugin;
     private Tag nfcTag;
+    private String cardPin;
+    private ProgressCallback progressCallback;
 
-    public INReaderTask(FlutterLibjeidPlugin flutterPlugin, Tag nfcTag) {
-        this.flutterPlugin = flutterPlugin;
+    public INReaderTask(FlutterLibjeidPlugin plugin, Tag nfcTag, String cardPin, ProgressCallback callback) {
+        this.flutterPlugin = plugin;
         this.nfcTag = nfcTag;
+        this.cardPin = cardPin;
+        this.progressCallback = callback;
     }
 
     @Override
     public void run() {
         String msgReadingHeader = "読み取り中\n";
         String msgErrorHeader = "エラー\n";
-        if (flutterPlugin.cardPin == null || flutterPlugin.cardPin.length() != 4) {
-            flutterPlugin.callback.error(flutterPlugin.notInputCardPin, "Please input a valid card pin", null);
-            return;
-        }
-        flutterPlugin.logProgressMessage("読み取り開始、カードを離さないでください");
         try {
+            if (cardPin == null || cardPin.length() != 4) {
+                flutterPlugin.callback.error(flutterPlugin.notInputCardPin, "Please input a valid card pin", null);
+                return;
+            }
+            progressCallback.onProgress("読み取り開始、カードを離さないでください");
             JeidReader reader = new JeidReader(nfcTag);
-            flutterPlugin.logProgressMessage(msgReadingHeader + "読み取り開始...");
+            progressCallback.onProgress(msgReadingHeader + "読み取り開始...");
             CardType type = reader.detectCardType();
             if (type != CardType.IN) {
                 flutterPlugin.callback.error(flutterPlugin.invalidCardType, msgErrorHeader + "It is not my number card", null);
                 return;
             }
-            flutterPlugin.logProgressMessage(msgReadingHeader + "暗証番号による認証...");
+            progressCallback.onProgress(msgReadingHeader + "暗証番号による認証...");
             INTextAP textAp = reader.selectINTextAP();
             try {
-                textAp.verifyPin(flutterPlugin.cardPin);
-                flutterPlugin.logProgressMessage("暗証番号による認証..." + "成功");
+                textAp.verifyPin(cardPin);
+                progressCallback.onProgress("暗証番号による認証..." + "成功");
             } catch (InvalidPinException e) {
                 flutterPlugin.callback.error(flutterPlugin.incorrectCardPin, "Incorrect card pin", null);
                 return;
             }
-            flutterPlugin.logProgressMessage(msgReadingHeader + "券面入力補助AP内の情報...");
+            progressCallback.onProgress(msgReadingHeader + "券面入力補助AP内の情報...");
             INTextFiles textFiles = textAp.readFiles();
-            flutterPlugin.logProgressMessage("券面入力補助AP内の情報..." + "成功");
+            progressCallback.onProgress("券面入力補助AP内の情報..." + "成功");
             HashMap<String, Object> obj = new HashMap();
             try {
                 INTextMyNumber textMyNumber = textFiles.getMyNumber();
@@ -79,7 +83,7 @@ public class INReaderTask implements Runnable {
             obj.put("card_address", textAttrs.getAddr());
 
             try {
-                flutterPlugin.logProgressMessage("券面入力補助APの真正性検証");
+                progressCallback.onProgress("券面入力補助APの真正性検証");
                 ValidationResult validationResult = textFiles.validate();
                 obj.put("validation_result", validationResult.isValid());
             } catch (UnsupportedOperationException ue) {
@@ -88,13 +92,12 @@ public class INReaderTask implements Runnable {
             } catch (Exception e) {
                 Log.e(TAG, "error", e);
             }
-            flutterPlugin.logProgressMessage(msgReadingHeader + "暗証番号による認証...");
+            progressCallback.onProgress(msgReadingHeader + "暗証番号による認証...");
             INVisualAP visualAp = reader.selectINVisualAP();
-            visualAp.verifyPin(flutterPlugin.cardPin);
-            flutterPlugin.logProgressMessage(msgReadingHeader + "暗証番号による認証..." + "成功");
-            flutterPlugin.logProgressMessage(msgReadingHeader + "券面AP内の情報...");
+            visualAp.verifyPin(cardPin);
+            progressCallback.onProgress(msgReadingHeader + "券面AP内の情報...");
             INVisualFiles visualFiles = visualAp.readFiles();
-            flutterPlugin.logProgressMessage(msgReadingHeader + "券面AP内の情報..." + "成功");
+            progressCallback.onProgress(msgReadingHeader + "券面AP内の情報..." + "成功");
             INVisualEntries visualEntries = visualFiles.getEntries();
             String expire = visualEntries.getExpire();
             obj.put("card_expire", expire);
@@ -115,7 +118,7 @@ public class INReaderTask implements Runnable {
             obj.put("card_photo", src);
 
             try {
-                flutterPlugin.logProgressMessage("券面APの真正性検証");
+                progressCallback.onProgress("券面APの真正性検証");
                 ValidationResult validationResult = visualFiles.validate();
                 obj.put("visualap_validation_result", validationResult.isValid());
             } catch (UnsupportedOperationException ue) {
@@ -135,7 +138,7 @@ public class INReaderTask implements Runnable {
                 Log.e(TAG, "error", e);
             }
 
-            flutterPlugin.logProgressMessage("読み取り完了");
+            progressCallback.onProgress("読み取り完了");
             flutterPlugin.callback.success(obj);
         } catch (Exception e) {
             Log.e(TAG, "error", e);

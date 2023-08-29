@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/services.dart';
 
 import 'flutter_libjeid_platform_interface.dart';
@@ -27,8 +29,9 @@ class FlutterLibjeid {
     return FlutterLibjeidPlatform.instance.scanINCard(cardPin: cardPin);
   }
 
-  /// Listen progress event
-  Stream<String> get onProgress {
-    return FlutterLibjeidPlatform.instance.onProgress;
+  Future<void> stopScan() async {
+    if (Platform.isAndroid) {
+      return FlutterLibjeidPlatform.instance.stopScan();
+    }
   }
 }

@@ -4,7 +4,7 @@ import libjeid
 import CoreNFC
 
 @available(iOS 13.0, *)
-public class FlutterLibjeidPlugin: NSObject, FlutterPlugin, NFCTagReaderSessionDelegate, FlutterStreamHandler {
+public class FlutterLibjeidPlugin: NSObject, FlutterPlugin, NFCTagReaderSessionDelegate {
     
     let notInputCardNumber = "not_input_card_number"
     let notInputCardPin = "not_input_card_pin"
@@ -17,7 +17,6 @@ public class FlutterLibjeidPlugin: NSObject, FlutterPlugin, NFCTagReaderSessionD
     
     var session: NFCTagReaderSession?
     var callback: FlutterResult?
-    var progressSink: FlutterEventSink?
     private var RCCardNumber: String?
     private var INCardPin: String?
     private var cardType: CardType?
@@ -25,8 +24,6 @@ public class FlutterLibjeidPlugin: NSObject, FlutterPlugin, NFCTagReaderSessionD
     public static func register(with registrar: FlutterPluginRegistrar) {
         let channel = FlutterMethodChannel(name: "flutter_libjeid", binaryMessenger: registrar.messenger())
         let instance = FlutterLibjeidPlugin()
-        let progressChanged = FlutterEventChannel(name: "flutter_libjeid_progress_stream", binaryMessenger: registrar.messenger())
-        progressChanged.setStreamHandler(instance)
         registrar.addMethodCallDelegate(instance, channel: channel)
         registrar.addApplicationDelegate(instance)
     }
@@ -87,17 +84,6 @@ public class FlutterLibjeidPlugin: NSObject, FlutterPlugin, NFCTagReaderSessionD
         }
     }
     
-    public func onListen(withArguments arguments: Any?, eventSink events: @escaping FlutterEventSink) -> FlutterError? {
-        progressSink = events
-        return nil
-    }
-    
-    public func onCancel(withArguments arguments: Any?) -> FlutterError? {
-        progressSink = nil
-        return nil
-    }
-    
-    
     public func tagReaderSessionDidBecomeActive(_ session: NFCTagReaderSession) {
         print("tagReaderSessionDidBecomeActive: \(Thread.current)")
     }
@@ -145,11 +131,6 @@ public class FlutterLibjeidPlugin: NSObject, FlutterPlugin, NFCTagReaderSessionD
             }
         }
     }
-    
-    func logProgressMessage(message: String){
-        guard let eventSink = progressSink else { return }
-        eventSink(message)
-    }
  
     func readRCCard(_ session: NFCTagReaderSession, didDetect tag: NFCTag, msgReadingHeader: String, msgErrorHeader: String) {
         do {
@@ -160,7 +141,6 @@ public class FlutterLibjeidPlugin: NSObject, FlutterPlugin, NFCTagReaderSessionD
             }
             let reader = try JeidReader(tag)
             session.alertMessage = "読み取り開始..."
-            logProgressMessage(message: session.alertMessage)
             // detect card type
             let type = try reader.detectCardType()
             if (type != CardType.RC) {
@@ -173,11 +153,9 @@ public class FlutterLibjeidPlugin: NSObject, FlutterPlugin, NFCTagReaderSessionD
             // verify card number
             do {
                 session.alertMessage = "\(msgReadingHeader)SM開始&認証..."
-                logProgressMessage(message: session.alertMessage)
                 let rcKey = try RCKey(self.RCCardNumber!)
                 try ap.startAC(rcKey)
                 session.alertMessage += "成功"
-                logProgressMessage(message: session.alertMessage)
             } catch let jeidError as JeidError {
                 switch jeidError {
                 case .invalidKey:
@@ -190,10 +168,8 @@ public class FlutterLibjeidPlugin: NSObject, FlutterPlugin, NFCTagReaderSessionD
             }
             // read common data
             session.alertMessage = "\(msgReadingHeader)共通データ要素、カード種別..."
-            logProgressMessage(message: session.alertMessage)
             let files = try ap.readFiles()
             session.alertMessage += "成功"
-            logProgressMessage(message: session.alertMessage)
             var dataDict = Dictionary<String, Any>()
             let commonData = try files.getCommonData()
             dataDict["rc_common"] = commonData.description
@@ -227,7 +203,6 @@ public class FlutterLibjeidPlugin: NSObject, FlutterPlugin, NFCTagReaderSessionD
             // authenticity verification
             do {
                 session.alertMessage = "真正性検証"
-                logProgressMessage(message: session.alertMessage)
                 let result = try files.validate()
                 dataDict["rc_valid"] = result.isValid
             } catch JeidError.unsupportedOperation {
@@ -236,7 +211,6 @@ public class FlutterLibjeidPlugin: NSObject, FlutterPlugin, NFCTagReaderSessionD
                 print(error)
             }
             session.alertMessage = "読み取り完了"
-            logProgressMessage(message: session.alertMessage)
             session.invalidate()
             self.callback?(dataDict)
         }
@@ -255,7 +229,6 @@ public class FlutterLibjeidPlugin: NSObject, FlutterPlugin, NFCTagReaderSessionD
             }
             let reader = try JeidReader(tag)
             session.alertMessage = "読み取り開始..."
-            logProgressMessage(message: session.alertMessage)
             let cardType = try reader.detectCardType()
             if (cardType != CardType.IN) {
                 self.callback?(FlutterError(code: self.invalidCardType, message:"\(msgErrorHeader)It is not my number card", details: nil))
@@ -266,10 +239,7 @@ public class FlutterLibjeidPlugin: NSObject, FlutterPlugin, NFCTagReaderSessionD
             session.alertMessage = "\(msgReadingHeader)暗証番号による認証..."
             let textAp = try reader.selectINText()
             do {
-                logProgressMessage(message: session.alertMessage)
                 try textAp.verifyPin(self.INCardPin!)
-                session.alertMessage += "成功"
-                logProgressMessage(message: session.alertMessage)
             } catch let jeidError as JeidError {
                 switch jeidError {
                 case .invalidKey:
@@ -281,10 +251,8 @@ public class FlutterLibjeidPlugin: NSObject, FlutterPlugin, NFCTagReaderSessionD
                 }
             }
             session.alertMessage = "\(msgReadingHeader)券面入力補助AP内の情報..."
-            logProgressMessage(message: session.alertMessage)
             let textFiles = try textAp.readFiles()
             session.alertMessage += "成功"
-            logProgressMessage(message: session.alertMessage)
             var dataDict = Dictionary<String, Any>()
             do {
                 let textMyNumber = try textFiles.getMyNumber()
@@ -312,7 +280,6 @@ public class FlutterLibjeidPlugin: NSObject, FlutterPlugin, NFCTagReaderSessionD
             }
             do {
                 session.alertMessage = "券面入力補助APの真正性検証"
-                logProgressMessage(message: session.alertMessage)
                 let textApValidationResult = try textFiles.validate()
                 dataDict["validation_result"] = textApValidationResult.isValid
             } catch JeidError.unsupportedOperation {
@@ -322,16 +289,12 @@ public class FlutterLibjeidPlugin: NSObject, FlutterPlugin, NFCTagReaderSessionD
                 print(error)
             }
             session.alertMessage = "\(msgReadingHeader)暗証番号による認証..."
-            logProgressMessage(message: session.alertMessage)
             let visualAp = try reader.selectINVisual()
             try visualAp.verifyPin(self.INCardPin!)
             session.alertMessage += "成功"
-            logProgressMessage(message: session.alertMessage)
             session.alertMessage = "\(msgReadingHeader)券面AP内の情報..."
-            logProgressMessage(message: session.alertMessage)
             let visualFiles = try visualAp.readFiles()
             session.alertMessage += "成功"
-            logProgressMessage(message: session.alertMessage)
             let visualEntries = try visualFiles.getEntries()
             if let expireDate = visualEntries.expireDate {
                 dataDict["card_expire"] = expireDate
@@ -357,7 +320,6 @@ public class FlutterLibjeidPlugin: NSObject, FlutterPlugin, NFCTagReaderSessionD
             
             do {
                 session.alertMessage = "券面APの真正性検証"
-                logProgressMessage(message: session.alertMessage)
                 let visualApValidationResult = try visualFiles.validate()
                 dataDict["visualap_validation_result"] = visualApValidationResult.isValid
             } catch JeidError.unsupportedOperation {
@@ -380,7 +342,6 @@ public class FlutterLibjeidPlugin: NSObject, FlutterPlugin, NFCTagReaderSessionD
                 print(error)
             }
             session.alertMessage = "読み取り完了"
-            logProgressMessage(message: session.alertMessage)
             session.invalidate()
             self.callback?(dataDict)
         }catch {
