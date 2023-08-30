@@ -1,6 +1,6 @@
 name: flutter_libjeid
 description: Flutter plugin to work with LibJeID (Library for Japanese Electronic ID)
-version: 0.0.4
+version: 0.0.5
 homepage: https://ponos-tech.com/
 
 environment:

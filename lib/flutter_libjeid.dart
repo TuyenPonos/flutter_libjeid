@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:flutter/services.dart';
 
 import 'flutter_libjeid_platform_interface.dart';
@@ -30,8 +28,6 @@ class FlutterLibjeid {
   }
 
   Future<void> stopScan() async {
-    if (Platform.isAndroid) {
-      return FlutterLibjeidPlatform.instance.stopScan();
-    }
+    return FlutterLibjeidPlatform.instance.stopScan();
   }
 }

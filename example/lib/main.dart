@@ -29,7 +29,6 @@ class _MyAppState extends State<MyApp> with SingleTickerProviderStateMixin {
   @override
   void initState() {
     _tabController = TabController(length: 2, vsync: this);
-    _cardNumberController.text = '123456789123';
     super.initState();
   }
 

@@ -137,8 +137,8 @@ public class FlutterLibjeidPlugin implements FlutterPlugin, MethodCallHandler, A
         if (this.nfcMode == NFC_READER_MODE) {
             Bundle options = new Bundle();
             nfcAdapter.enableReaderMode(activity,
-                    tag -> FlutterLibjeidPlugin.this.onTagDiscovered(tag),
-                    NfcAdapter.FLAG_READER_NFC_B | NfcAdapter.FLAG_READER_SKIP_NDEF_CHECK | NfcAdapter.FLAG_READER_NFC_A,
+                    FlutterLibjeidPlugin.this::onTagDiscovered,
+                    NfcAdapter.FLAG_READER_NFC_B | NfcAdapter.FLAG_READER_SKIP_NDEF_CHECK,
                     options);
         } else {
             Intent intent = new Intent(context, this.getClass());
@@ -229,7 +229,7 @@ public class FlutterLibjeidPlugin implements FlutterPlugin, MethodCallHandler, A
             alertDialog.show();
         }
         if (alertDialog != null && alertDialog.isShowing()) {
-            TextView tv_message = (TextView) alertDialog.findViewById(R.id.progress_message);
+            TextView tv_message = alertDialog.findViewById(R.id.progress_message);
             uiThreadHandler.post(() -> tv_message.setText(message));
         }
     }

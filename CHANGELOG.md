@@ -14,3 +14,7 @@
 ## 0.0.4
 
 * Trigger new version ios
+
+## 0.0.5
+
+* Trigger new version ios

@@ -49,6 +49,7 @@ android {
         testImplementation 'org.jetbrains.kotlin:kotlin-test'
         testImplementation 'org.mockito:mockito-core:5.0.0'
         implementation 'jp.co.osstech:libjeid-free:20230526@aar'
+        implementation 'org.bouncycastle:bcprov-jdk16:1.46'
     }
 
     testOptions {

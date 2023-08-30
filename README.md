@@ -21,7 +21,7 @@ LibJeID (Library for Japanese Electronic ID) is a library for smartphones to acc
 
 ### Dictionary in free version and production version
 
-![available_data](available_data.png)
+![available_data](https://github.com/TuyenPonos/flutter_libjeid/blob/main/available_data.png)
 
 ## Install
 

@@ -79,6 +79,14 @@ public class FlutterLibjeidPlugin: NSObject, FlutterPlugin, NFCTagReaderSessionD
                 result(FlutterError(code: badArguments, message: "Bad arguments. Please check again", details: nil))
             }
             break
+        case "stopScan":
+            self.cardType = nil
+            self.INCardPin = nil
+            self.RCCardNumber = nil
+            if((self.session?.isReady) != nil){
+                self.session?.invalidate()
+            }
+            break;
         default:
             result(FlutterMethodNotImplemented)
         }
@@ -89,7 +97,6 @@ public class FlutterLibjeidPlugin: NSObject, FlutterPlugin, NFCTagReaderSessionD
     }
     
     public func tagReaderSession(_ session: NFCTagReaderSession, didInvalidateWithError error: Error) {
-        self.cardType = nil
         if let nfcError = error as? NFCReaderError {
             if nfcError.code != .readerSessionInvalidationErrorUserCanceled {
                 print("tagReaderSession error: " + nfcError.localizedDescription)
@@ -100,7 +107,7 @@ public class FlutterLibjeidPlugin: NSObject, FlutterPlugin, NFCTagReaderSessionD
             }
         } else {
             print("tagReaderSession error: " + error.localizedDescription)
-            self.callback?(FlutterError(code: self.unknown, message: "Unknow error", details: error.localizedDescription))
+            self.callback?(FlutterError(code: self.unknown, message: "Unknow error: \(error.localizedDescription)", details: error))
         }
         self.session = nil
     }
@@ -215,6 +222,7 @@ public class FlutterLibjeidPlugin: NSObject, FlutterPlugin, NFCTagReaderSessionD
             self.callback?(dataDict)
         }
         catch {
+            self.callback?(FlutterError(code: self.unknown, message: "Unknow error", details: nil))
             session.invalidate(errorMessage: session.alertMessage + "失敗")
         }
         
@@ -345,6 +353,7 @@ public class FlutterLibjeidPlugin: NSObject, FlutterPlugin, NFCTagReaderSessionD
             session.invalidate()
             self.callback?(dataDict)
         }catch {
+            self.callback?(FlutterError(code: self.unknown, message: "Unknow error", details: nil))
             session.invalidate(errorMessage: session.alertMessage + "失敗")
         }
     }

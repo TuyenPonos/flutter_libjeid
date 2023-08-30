@@ -142,7 +142,7 @@ public class INReaderTask implements Runnable {
             flutterPlugin.callback.success(obj);
         } catch (Exception e) {
             Log.e(TAG, "error", e);
-            flutterPlugin.callback.error(flutterPlugin.unknown, "Unknown error", e);
+            flutterPlugin.callback.error(flutterPlugin.unknown, "Unknown error: " + e, e);
         }
     }
 }
