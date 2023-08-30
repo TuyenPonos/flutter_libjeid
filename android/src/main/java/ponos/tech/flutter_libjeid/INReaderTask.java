@@ -104,8 +104,8 @@ public class INReaderTask implements Runnable {
             obj.put("card_birth2", visualEntries.getBirth());
             obj.put("card_sex2", visualEntries.getSexString());
             obj.put("card_name_image",
-                    Base64.encodeToString(visualEntries.getName(), Base64.DEFAULT));
-            obj.put("card_address_image", Base64.encodeToString(visualEntries.getAddr(), Base64.DEFAULT));
+                    Base64.encodeToString(visualEntries.getName(), Base64.NO_WRAP));
+            obj.put("card_address_image", Base64.encodeToString(visualEntries.getAddr(), Base64.NO_WRAP));
             BitmapARGB argb = visualEntries.getPhotoBitmapARGB();
             Bitmap bitmap = Bitmap.createBitmap(argb.getData(),
                     argb.getWidth(),
@@ -114,7 +114,7 @@ public class INReaderTask implements Runnable {
             ByteArrayOutputStream os = new ByteArrayOutputStream();
             bitmap.compress(Bitmap.CompressFormat.JPEG, 100, os);
             byte[] jpeg = os.toByteArray();
-            String src = Base64.encodeToString(jpeg, Base64.DEFAULT);
+            String src = Base64.encodeToString(jpeg, Base64.NO_WRAP);
             obj.put("card_photo", src);
 
             try {
@@ -130,7 +130,7 @@ public class INReaderTask implements Runnable {
 
             try {
                 INVisualMyNumber visualMyNumber = visualFiles.getMyNumber();
-                obj.put("card_mynumber_image", Base64.encodeToString(visualMyNumber.getMyNumber(), Base64.DEFAULT));
+                obj.put("card_mynumber_image", Base64.encodeToString(visualMyNumber.getMyNumber(), Base64.NO_WRAP));
             } catch (FileNotFoundException | UnsupportedOperationException ue) {
                 // 無償版では個人番号(画像)を取得できません。
                 obj.put("card_mynumber_image", null);

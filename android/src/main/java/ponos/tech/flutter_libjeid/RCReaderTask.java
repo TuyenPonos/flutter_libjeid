@@ -75,7 +75,7 @@ public class RCReaderTask implements Runnable {
             obj.put("rc_card_type", cardType.getType());
             RCCardEntries cardEntries = files.getCardEntries();
             byte[] png = cardEntries.toPng();
-            String src = Base64.encodeToString(png, Base64.DEFAULT);
+            String src = Base64.encodeToString(png, Base64.NO_WRAP);
             obj.put("rc_front_image", src);
             RCPhoto photo = files.getPhoto();
             BitmapARGB argb = photo.getPhotoBitmapARGB();
@@ -87,7 +87,7 @@ public class RCReaderTask implements Runnable {
                 ByteArrayOutputStream os = new ByteArrayOutputStream();
                 bitmap.compress(Bitmap.CompressFormat.JPEG, 100, os);
                 byte[] jpeg = os.toByteArray();
-                src = Base64.encodeToString(jpeg, Base64.DEFAULT);
+                src = Base64.encodeToString(jpeg, Base64.NO_WRAP);
                 obj.put("rc_photo", src);
             }
             if ("1".equals(cardType.getType())) {

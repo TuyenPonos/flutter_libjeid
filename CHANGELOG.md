@@ -27,3 +27,8 @@
 
 * Fix bugs
 * Update README.md
+
+## 0.0.8
+
+* Fix base64 image data not correct format
+

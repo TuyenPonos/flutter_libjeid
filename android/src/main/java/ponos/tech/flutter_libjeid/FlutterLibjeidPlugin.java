@@ -72,6 +72,7 @@ public class FlutterLibjeidPlugin implements FlutterPlugin, MethodCallHandler, A
         channel.setMethodCallHandler(this);
         this.context = flutterPluginBinding.getApplicationContext();
         nfcAdapter = NfcAdapter.getDefaultAdapter(this.context);
+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             // Android 8.0 or higher uses ReaderMode
             this.nfcMode = NFC_READER_MODE;
