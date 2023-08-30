@@ -22,3 +22,8 @@
 ## 0.0.6
 
 * Allow cancel in Android
+
+## 0.0.7
+
+* Fix bugs
+* Update README.md
