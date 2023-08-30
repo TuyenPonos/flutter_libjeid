@@ -17,10 +17,12 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.view.View;
+import android.widget.Button;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 
+import java.util.HashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -196,7 +198,7 @@ public class FlutterLibjeidPlugin implements FlutterPlugin, MethodCallHandler, A
                 .inflate(R.layout.progress_dialog, null);
         alertDialog = new AlertDialog.Builder(this.activity, AlertDialog.THEME_DEVICE_DEFAULT_LIGHT )
                 .setCancelable(false)
-                .setOnCancelListener(dialog -> startScan())
+                .setOnCancelListener(dialog -> stopScan())
                 .setView(view)
                 .create();
     }
@@ -227,6 +229,10 @@ public class FlutterLibjeidPlugin implements FlutterPlugin, MethodCallHandler, A
         Log.i(TAG, message);
         if (alertDialog != null && !alertDialog.isShowing()) {
             alertDialog.show();
+            Button cancelButton = (Button) alertDialog.findViewById(R.id.cancel_button);
+            cancelButton.setOnClickListener(v -> {
+                FlutterLibjeidPlugin.this.callback.success( new HashMap());
+            });
         }
         if (alertDialog != null && alertDialog.isShowing()) {
             TextView tv_message = alertDialog.findViewById(R.id.progress_message);

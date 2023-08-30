@@ -5,6 +5,7 @@ import 'flutter_libjeid_platform_interface.dart';
 class FlutterLibjeid {
   /// Scan RC Card
   /// Input [cardNumber] ex: 123456789123
+  /// Return {} when cancelled
   Future<Map<String, dynamic>> scanRCCard({required String cardNumber}) {
     if (cardNumber.isEmpty) {
       throw PlatformException(
@@ -17,6 +18,7 @@ class FlutterLibjeid {
 
   /// Scan IN Card
   /// Input [cardPin] ex: 1234
+  /// Return {} when cancelled
   Future<Map<String, dynamic>> scanINCard({required String cardPin}) {
     if (cardPin.length != 4) {
       throw PlatformException(

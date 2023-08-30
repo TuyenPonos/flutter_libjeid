@@ -44,7 +44,7 @@ class _MyAppState extends State<MyApp> with SingleTickerProviderStateMixin {
       final resp = await _flutterLibjeidPlugin.scanRCCard(
         cardNumber: _cardNumberController.text,
       );
-      if (mounted) {
+      if (mounted && resp.isNotEmpty) {
         setState(() {
           _data = Map.from(resp);
         });
@@ -78,7 +78,7 @@ class _MyAppState extends State<MyApp> with SingleTickerProviderStateMixin {
       final resp = await _flutterLibjeidPlugin.scanINCard(
         cardPin: _cardPinController.text,
       );
-      if (mounted) {
+      if (mounted && resp.isNotEmpty) {
         setState(() {
           _data = Map.from(resp);
         });

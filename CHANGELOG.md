@@ -18,3 +18,7 @@
 ## 0.0.5
 
 * Trigger new version ios
+
+## 0.0.6
+
+* Allow cancel in Android
