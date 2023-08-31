@@ -32,3 +32,6 @@
 
 * Fix base64 image data not correct format
 
+## 0.0.9
+
+* Add support driver license

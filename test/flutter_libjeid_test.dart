@@ -20,6 +20,12 @@ class MockFlutterLibjeidPlatform
   Future<void> stopScan() {
     throw UnimplementedError();
   }
+
+  @override
+  Future<Map<String, dynamic>> scanDLCard(
+      {required String cardPin1, required String cardPin2}) {
+    throw UnimplementedError();
+  }
 }
 
 void main() {

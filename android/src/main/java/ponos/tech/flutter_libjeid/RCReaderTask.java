@@ -45,10 +45,6 @@ public class RCReaderTask implements Runnable {
         String msgReadingHeader = "読み取り中\n";
         String msgErrorHeader = "エラー\n";
         try {
-            if (cardNumber == null || cardNumber.isEmpty()) {
-                flutterPlugin.callback.error(flutterPlugin.notInputCardNumber, "Please input a valid card number", null);
-                return;
-            }
             progressCallback.onProgress("読み取り開始、カードを離さないでください");
             JeidReader reader = new JeidReader(nfcTag);
             progressCallback.onProgress(msgReadingHeader + "読み取り開始...");
@@ -115,7 +111,7 @@ public class RCReaderTask implements Runnable {
             } catch (Exception e) {
                 Log.e(TAG, "error", e);
             }
-            progressCallback.onProgress(msgReadingHeader + "読み取り完了");
+            progressCallback.onProgress( "読み取り完了");
             flutterPlugin.callback.success(obj);
         } catch (Exception e) {
             Log.e(TAG, "error", e);

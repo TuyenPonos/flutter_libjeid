@@ -32,6 +32,21 @@ class MethodChannelFlutterLibjeid extends FlutterLibjeidPlatform {
   }
 
   @override
+  Future<Map<String, dynamic>> scanDLCard({
+    required String cardPin1,
+    required String cardPin2,
+  }) async {
+    final response = await methodChannel.invokeMethod(
+      'scanDLCard',
+      {
+        'pin_1': cardPin1,
+        'pin_2': cardPin2,
+      },
+    );
+    return Map.from(response);
+  }
+
+  @override
   Future<void> stopScan() async {
     await methodChannel.invokeMethod('stopScan');
   }

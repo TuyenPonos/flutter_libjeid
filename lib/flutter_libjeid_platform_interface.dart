@@ -42,6 +42,17 @@ abstract class FlutterLibjeidPlatform extends PlatformInterface {
     return _instance.scanINCard(cardPin: cardPin);
   }
 
+  /// Scan DL Card
+  /// Input [cardPin1] ex: 1234
+  /// Input [cardPin2] ex: 1234
+  /// Return {} when cancelled
+  Future<Map<String, dynamic>> scanDLCard({
+    required String cardPin1,
+    required String cardPin2,
+  }) async {
+    return _instance.scanDLCard(cardPin1: cardPin1, cardPin2: cardPin2);
+  }
+
   /// Stop all card scanning
   Future<void> stopScan() {
     return _instance.stopScan();

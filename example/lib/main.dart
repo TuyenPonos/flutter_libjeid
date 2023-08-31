@@ -21,14 +21,16 @@ class _MyAppState extends State<MyApp> with SingleTickerProviderStateMixin {
   Map<String, dynamic> _data = {};
   String? _error;
   final _flutterLibjeidPlugin = FlutterLibjeid();
-  final TextEditingController _cardNumberController = TextEditingController();
-  final TextEditingController _cardPinController = TextEditingController();
+  final TextEditingController _rcCardNumberController = TextEditingController();
+  final TextEditingController _inCardPinController = TextEditingController();
+  final TextEditingController _dlCardPin1Controller = TextEditingController();
+  final TextEditingController _dlCardPin2Controller = TextEditingController();
+
   late final TabController _tabController;
-  int _tabIndex = 0;
 
   @override
   void initState() {
-    _tabController = TabController(length: 2, vsync: this);
+    _tabController = TabController(length: 3, vsync: this);
     super.initState();
   }
 
@@ -42,7 +44,7 @@ class _MyAppState extends State<MyApp> with SingleTickerProviderStateMixin {
         _error = null;
       });
       final resp = await _flutterLibjeidPlugin.scanRCCard(
-        cardNumber: _cardNumberController.text,
+        cardNumber: _rcCardNumberController.text,
       );
       if (mounted && resp.isNotEmpty) {
         setState(() {
@@ -76,7 +78,42 @@ class _MyAppState extends State<MyApp> with SingleTickerProviderStateMixin {
         _error = null;
       });
       final resp = await _flutterLibjeidPlugin.scanINCard(
-        cardPin: _cardPinController.text,
+        cardPin: _inCardPinController.text,
+      );
+      if (mounted && resp.isNotEmpty) {
+        setState(() {
+          _data = Map.from(resp);
+        });
+      }
+    } on PlatformException catch (e) {
+      if (mounted) {
+        setState(() {
+          _error = '${e.code}: ${e.message}';
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _error = e.toString();
+        });
+      }
+    } finally {
+      _flutterLibjeidPlugin.stopScan();
+    }
+  }
+
+  Future<void> startScanDLCard() async {
+    try {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _data = Map.from({});
+        _error = null;
+      });
+      final resp = await _flutterLibjeidPlugin.scanDLCard(
+        cardPin1: _dlCardPin1Controller.text,
+        cardPin2: _dlCardPin2Controller.text,
       );
       if (mounted && resp.isNotEmpty) {
         setState(() {
@@ -123,54 +160,91 @@ class _MyAppState extends State<MyApp> with SingleTickerProviderStateMixin {
                 controller: _tabController,
                 labelStyle: const TextStyle(fontSize: 16),
                 labelColor: Colors.blue,
+                isScrollable: true,
                 tabs: const [
-                  SizedBox(height: 30, child: Text('RC Card')),
-                  SizedBox(height: 30, child: Text('IN Card'))
+                  SizedBox(height: 30, child: Text('My number')),
+                  SizedBox(height: 30, child: Text('Driver License')),
+                  SizedBox(height: 30, child: Text('Residence')),
                 ],
                 onTap: (index) {
                   setState(() {
-                    _tabIndex = index;
                     _data = Map.from({});
                     _error = null;
                   });
                 },
               ),
               const SizedBox(height: 10),
-              AnimatedCrossFade(
-                firstChild: Column(
+              SizedBox(
+                height: 130,
+                child: TabBarView(
+                  controller: _tabController,
                   children: [
-                    TextFormField(
-                      maxLength: 12,
-                      controller: _cardNumberController,
-                      decoration: const InputDecoration(
-                        hintText: 'Input your residence card number',
-                      ),
+                    Column(
+                      children: [
+                        TextFormField(
+                          controller: _inCardPinController,
+                          maxLength: 4,
+                          decoration: const InputDecoration(
+                            hintText: 'Input PIN',
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        ElevatedButton(
+                          onPressed: startScanINCard,
+                          child: const Text('Scan My Number Card'),
+                        ),
+                      ],
                     ),
-                    ElevatedButton(
-                      onPressed: startScanRCCard,
-                      child: const Text('Scan RC Card'),
+                    Column(
+                      children: [
+                        Row(
+                          children: [
+                            Expanded(
+                              child: TextFormField(
+                                controller: _dlCardPin1Controller,
+                                maxLength: 4,
+                                decoration: const InputDecoration(
+                                  hintText: 'Input PIN 1',
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: TextFormField(
+                                controller: _dlCardPin2Controller,
+                                maxLength: 4,
+                                decoration: const InputDecoration(
+                                  hintText: 'Input PIN 2',
+                                ),
+                              ),
+                            )
+                          ],
+                        ),
+                        const SizedBox(height: 10),
+                        ElevatedButton(
+                          onPressed: startScanDLCard,
+                          child: const Text('Scan Driver License Card'),
+                        ),
+                      ],
                     ),
+                    Column(
+                      children: [
+                        TextFormField(
+                          maxLength: 12,
+                          controller: _rcCardNumberController,
+                          decoration: const InputDecoration(
+                            hintText: 'Input card number',
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        ElevatedButton(
+                          onPressed: startScanRCCard,
+                          child: const Text('Scan Residence Card'),
+                        ),
+                      ],
+                    )
                   ],
                 ),
-                secondChild: Column(
-                  children: [
-                    TextFormField(
-                      controller: _cardPinController,
-                      maxLength: 4,
-                      decoration: const InputDecoration(
-                        hintText: 'Input your number card pin',
-                      ),
-                    ),
-                    ElevatedButton(
-                      onPressed: startScanINCard,
-                      child: const Text('Scan IN Card'),
-                    ),
-                  ],
-                ),
-                crossFadeState: _tabIndex == 0
-                    ? CrossFadeState.showFirst
-                    : CrossFadeState.showSecond,
-                duration: const Duration(milliseconds: 200),
               ),
               const SizedBox(height: 20),
               if (_error?.isNotEmpty ?? false)
@@ -180,9 +254,45 @@ class _MyAppState extends State<MyApp> with SingleTickerProviderStateMixin {
                 ),
               Expanded(
                 child: SingleChildScrollView(
-                  child: _tabIndex == 0
-                      ? _RCCardResult(data: _data)
-                      : _INCardResult(data: _data),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: _data.entries
+                        .map(
+                          (e) => Container(
+                            padding: const EdgeInsets.symmetric(vertical: 10),
+                            decoration: BoxDecoration(
+                              border: Border(
+                                bottom: BorderSide(color: Colors.grey[200]!),
+                              ),
+                            ),
+                            child: Row(
+                              children: [
+                                Expanded(flex: 2, child: Text(e.key)),
+                                Expanded(
+                                  flex: 3,
+                                  child: Builder(builder: (context) {
+                                    if (e.key == 'rc_front_image' ||
+                                        e.key == 'rc_photo' ||
+                                        e.key == 'card_name_image' ||
+                                        e.key == 'card_address_image' ||
+                                        e.key == 'card_photo' ||
+                                        e.key == 'dl_photo') {
+                                      return Image.memory(
+                                        const Base64Decoder().convert(
+                                          e.value.toString(),
+                                        ),
+                                      );
+                                    }
+                                    return Text(e.value.toString());
+                                  }),
+                                )
+                              ],
+                            ),
+                          ),
+                        )
+                        .toList(),
+                  ),
                 ),
               ),
             ],
@@ -190,143 +300,5 @@ class _MyAppState extends State<MyApp> with SingleTickerProviderStateMixin {
         ),
       ),
     );
-  }
-}
-
-class _RCCardResult extends StatelessWidget {
-  final Map<String, dynamic> data;
-  const _RCCardResult({Key? key, required this.data}) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        if (data.containsKey('rc_front_image'))
-          Stack(
-            children: [
-              Image.memory(
-                const Base64Decoder().convert(
-                  data['rc_front_image'],
-                ),
-              ),
-              Positioned(
-                right: 10,
-                bottom: 10,
-                child: Image.memory(
-                  const Base64Decoder().convert(
-                    data['rc_photo'],
-                  ),
-                  width: 90,
-                ),
-              ),
-            ],
-          ),
-        const SizedBox(height: 10),
-        if (data.isNotEmpty) ...[
-          const Text('Other data'),
-          const SizedBox(height: 10),
-          ...data.entries.map(
-            (e) => e.key == 'rc_front_image' || e.key == 'rc_photo'
-                ? const SizedBox()
-                : Container(
-                    padding: const EdgeInsets.symmetric(vertical: 5),
-                    decoration: BoxDecoration(
-                      border: Border(
-                        bottom: BorderSide(color: Colors.grey[200]!),
-                      ),
-                    ),
-                    child: Row(
-                      children: [
-                        Expanded(child: Text(e.key)),
-                        Expanded(
-                          flex: 2,
-                          child: Text(
-                            e.value.toString(),
-                          ),
-                        )
-                      ],
-                    ),
-                  ),
-          )
-        ],
-      ],
-    );
-  }
-}
-
-class _INCardResult extends StatelessWidget {
-  final Map<String, dynamic> data;
-  const _INCardResult({Key? key, required this.data}) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        if (data.containsKey('card_name_image'))
-          Image.memory(
-            const Base64Decoder().convert(
-              data['card_name_image'],
-            ),
-          ),
-        const SizedBox(height: 10),
-        if (data.containsKey('card_address_image'))
-          Image.memory(
-            const Base64Decoder().convert(
-              data['card_address_image'],
-            ),
-          ),
-        const SizedBox(height: 10),
-        if (data.containsKey('card_photo'))
-          Image.memory(
-            const Base64Decoder().convert(
-              data['card_photo'],
-            ),
-          ),
-        const SizedBox(height: 10),
-        if (data.isNotEmpty) ...[
-          const Text('Other data'),
-          const SizedBox(height: 10),
-          ...data.entries.map(
-            (e) => e.key == 'card_name_image' ||
-                    e.key == 'card_address_image' ||
-                    e.key == 'card_photo'
-                ? const SizedBox()
-                : Container(
-                    padding: const EdgeInsets.symmetric(vertical: 5),
-                    decoration: BoxDecoration(
-                      border: Border(
-                        bottom: BorderSide(color: Colors.grey[200]!),
-                      ),
-                    ),
-                    child: Row(
-                      children: [
-                        Expanded(child: Text(e.key)),
-                        Expanded(
-                          flex: 2,
-                          child: Text(
-                            e.value.toString(),
-                          ),
-                        )
-                      ],
-                    ),
-                  ),
-          )
-        ],
-      ],
-    );
-  }
-}
-
-class _ProcessingDialog extends StatefulWidget {
-  const _ProcessingDialog({super.key});
-
-  @override
-  State<_ProcessingDialog> createState() => _ProcessingDialogState();
-}
-
-class _ProcessingDialogState extends State<_ProcessingDialog> {
-  @override
-  Widget build(BuildContext context) {
-    return Container();
   }
 }

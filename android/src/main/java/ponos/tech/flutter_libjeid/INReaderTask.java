@@ -42,10 +42,6 @@ public class INReaderTask implements Runnable {
         String msgReadingHeader = "読み取り中\n";
         String msgErrorHeader = "エラー\n";
         try {
-            if (cardPin == null || cardPin.length() != 4) {
-                flutterPlugin.callback.error(flutterPlugin.notInputCardPin, "Please input a valid card pin", null);
-                return;
-            }
             progressCallback.onProgress("読み取り開始、カードを離さないでください");
             JeidReader reader = new JeidReader(nfcTag);
             progressCallback.onProgress(msgReadingHeader + "読み取り開始...");
@@ -69,26 +65,26 @@ public class INReaderTask implements Runnable {
             HashMap<String, Object> obj = new HashMap();
             try {
                 INTextMyNumber textMyNumber = textFiles.getMyNumber();
-                obj.put("card_mynumber", textMyNumber.getMyNumber());
+                obj.put("in_mynumber", textMyNumber.getMyNumber());
             } catch (FileNotFoundException | UnsupportedOperationException ue) {
                 // 無償版では個人番号を取得出来ません。
-                obj.put("card_mynumber", null);
+                obj.put("in_mynumber", null);
             } catch (Exception e) {
                 Log.e(TAG, "error", e);
             }
             INTextAttributes textAttrs = textFiles.getAttributes();
-            obj.put("card_name", textAttrs.getName());
-            obj.put("card_birth", textAttrs.getBirth());
-            obj.put("card_sex", textAttrs.getSexString());
-            obj.put("card_address", textAttrs.getAddr());
+            obj.put("in_name", textAttrs.getName());
+            obj.put("in_birth", textAttrs.getBirth());
+            obj.put("in_sex", textAttrs.getSexString());
+            obj.put("in_address", textAttrs.getAddr());
 
             try {
                 progressCallback.onProgress("券面入力補助APの真正性検証");
                 ValidationResult validationResult = textFiles.validate();
-                obj.put("validation_result", validationResult.isValid());
+                obj.put("in_validation", validationResult.isValid());
             } catch (UnsupportedOperationException ue) {
                 // 無償版では真正性検証をサポートしていません。
-                obj.put("validation_result", null);
+                obj.put("in_validation", null);
             } catch (Exception e) {
                 Log.e(TAG, "error", e);
             }
@@ -100,12 +96,12 @@ public class INReaderTask implements Runnable {
             progressCallback.onProgress(msgReadingHeader + "券面AP内の情報..." + "成功");
             INVisualEntries visualEntries = visualFiles.getEntries();
             String expire = visualEntries.getExpire();
-            obj.put("card_expire", expire);
-            obj.put("card_birth2", visualEntries.getBirth());
-            obj.put("card_sex2", visualEntries.getSexString());
-            obj.put("card_name_image",
+            obj.put("in_expire", expire);
+            obj.put("in_birth2", visualEntries.getBirth());
+            obj.put("in_sex2", visualEntries.getSexString());
+            obj.put("in_name_image",
                     Base64.encodeToString(visualEntries.getName(), Base64.NO_WRAP));
-            obj.put("card_address_image", Base64.encodeToString(visualEntries.getAddr(), Base64.NO_WRAP));
+            obj.put("in_address_image", Base64.encodeToString(visualEntries.getAddr(), Base64.NO_WRAP));
             BitmapARGB argb = visualEntries.getPhotoBitmapARGB();
             Bitmap bitmap = Bitmap.createBitmap(argb.getData(),
                     argb.getWidth(),
@@ -115,25 +111,24 @@ public class INReaderTask implements Runnable {
             bitmap.compress(Bitmap.CompressFormat.JPEG, 100, os);
             byte[] jpeg = os.toByteArray();
             String src = Base64.encodeToString(jpeg, Base64.NO_WRAP);
-            obj.put("card_photo", src);
-
+            obj.put("in_photo", src);
             try {
                 progressCallback.onProgress("券面APの真正性検証");
                 ValidationResult validationResult = visualFiles.validate();
-                obj.put("visualap_validation_result", validationResult.isValid());
+                obj.put("in_visualap_validation", validationResult.isValid());
             } catch (UnsupportedOperationException ue) {
                 // 無償版では真正性検証をサポートしていません。
-                obj.put("visualap_validation_result", null);
+                obj.put("in_visualap_validation", null);
             }catch (Exception e) {
                 Log.e(TAG, "error", e);
             }
 
             try {
                 INVisualMyNumber visualMyNumber = visualFiles.getMyNumber();
-                obj.put("card_mynumber_image", Base64.encodeToString(visualMyNumber.getMyNumber(), Base64.NO_WRAP));
+                obj.put("in_mynumber_image", Base64.encodeToString(visualMyNumber.getMyNumber(), Base64.NO_WRAP));
             } catch (FileNotFoundException | UnsupportedOperationException ue) {
                 // 無償版では個人番号(画像)を取得できません。
-                obj.put("card_mynumber_image", null);
+                obj.put("in_mynumber_image", null);
             }catch (Exception e){
                 Log.e(TAG, "error", e);
             }

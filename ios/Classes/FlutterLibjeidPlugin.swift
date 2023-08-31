@@ -14,12 +14,15 @@ public class FlutterLibjeidPlugin: NSObject, FlutterPlugin, NFCTagReaderSessionD
     let invalidCardType = "invalid_card_type"
     let unknown = "unknown"
     let badArguments = "bad_arguments"
+    let DPIN = "****"
     
     var session: NFCTagReaderSession?
     var callback: FlutterResult?
     private var RCCardNumber: String?
     private var INCardPin: String?
     private var cardType: CardType?
+    private var DLCardPin1: String?
+    private var DLCardPin2: String?
     
     public static func register(with registrar: FlutterPluginRegistrar) {
         let channel = FlutterMethodChannel(name: "flutter_libjeid", binaryMessenger: registrar.messenger())
@@ -58,7 +61,7 @@ public class FlutterLibjeidPlugin: NSObject, FlutterPlugin, NFCTagReaderSessionD
         case "scanINCard":
             self.cardType = CardType.IN
             if let args = call.arguments as? Dictionary<String, Any> , let cardPin = args["pin"] as? String {
-                if(cardPin.isEmpty){
+                if(cardPin.isEmpty || cardPin.count != 4){
                     result(FlutterError(code: notInputCardPin, message: "Please input a valid card pin", details: nil))
                     return
                 }
@@ -79,10 +82,41 @@ public class FlutterLibjeidPlugin: NSObject, FlutterPlugin, NFCTagReaderSessionD
                 result(FlutterError(code: badArguments, message: "Bad arguments. Please check again", details: nil))
             }
             break
+        case "scanDLCard":
+            self.cardType = CardType.DL
+            if let args = call.arguments as? Dictionary<String, Any> , let cardPin1 = args["pin_1"] as? String,let cardPin2 = args["pin_2"] as? String {
+                if(cardPin1.isEmpty || cardPin1.count != 4){
+                    result(FlutterError(code: notInputCardPin, message: "Please input a valid card pin 1", details: nil))
+                    return
+                }
+                if(cardPin2.isEmpty || cardPin2.count != 4){
+                    result(FlutterError(code: notInputCardPin, message: "Please input a valid card pin 2", details: nil))
+                    return
+                }
+                if(!NFCReaderSession.readingAvailable){
+                    result(FlutterError(code: nfcConnectError, message: "NFC Session is unavailable", details: nil))
+                    return
+                }
+                self.DLCardPin1 = cardPin1
+                self.DLCardPin2 = cardPin2
+                if let _ = self.session {
+                    result(FlutterError(code: nfcConnectError, message: "Please wait and try again", details: nil))
+                } else {
+                    self.session = NFCTagReaderSession(pollingOption: [.iso14443], delegate: self, queue: DispatchQueue.global())
+                    self.session?.alertMessage = "カードに端末をかざしてください"
+                    self.session?.begin()
+                }
+            }
+            else {
+                result(FlutterError(code: badArguments, message: "Bad arguments. Please check again", details: nil))
+            }
+            break
         case "stopScan":
             self.cardType = nil
             self.INCardPin = nil
             self.RCCardNumber = nil
+            self.DLCardPin1 = nil
+            self.DLCardPin2 = nil
             if((self.session?.isReady) != nil){
                 self.session?.invalidate()
             }
@@ -132,20 +166,18 @@ public class FlutterLibjeidPlugin: NSObject, FlutterPlugin, NFCTagReaderSessionD
             case .IN:
                 self.readINCard(session, didDetect: tag, msgReadingHeader: msgReadingHeader, msgErrorHeader: msgErrorHeader)
                 break
+            case .DL:
+                self.readDLCard(session, didDetect: tag, msgReadingHeader: msgReadingHeader, msgErrorHeader: msgErrorHeader)
             default:
                 self.callback?(FlutterError(code: self.invalidCardType, message: "CardType invalid", details: nil))
                 break
             }
         }
     }
- 
+    
     func readRCCard(_ session: NFCTagReaderSession, didDetect tag: NFCTag, msgReadingHeader: String, msgErrorHeader: String) {
         do {
-            if (self.RCCardNumber == nil || self.RCCardNumber!.isEmpty) {
-                self.callback?(FlutterError(code: self.notInputCardNumber, message: "Please input a valid card number", details: nil))
-                session.invalidate(errorMessage: "\(msgErrorHeader)在留カード等の番号が入力されていません")
-                return
-            }
+            session.alertMessage = "読み取り開始、カードを離さないでください"
             let reader = try JeidReader(tag)
             session.alertMessage = "読み取り開始..."
             // detect card type
@@ -230,11 +262,7 @@ public class FlutterLibjeidPlugin: NSObject, FlutterPlugin, NFCTagReaderSessionD
     
     func readINCard(_ session: NFCTagReaderSession, didDetect tag: NFCTag, msgReadingHeader: String, msgErrorHeader: String)  {
         do{
-            if (self.INCardPin == nil || self.INCardPin!.isEmpty || self.INCardPin!.count != 4) {
-                self.callback?(FlutterError(code: self.notInputCardPin, message: "Please input a valid card pin", details: nil))
-                session.invalidate(errorMessage: "\(msgErrorHeader)暗証番号が入力されていません")
-                return
-            }
+            session.alertMessage = "読み取り開始、カードを離さないでください"
             let reader = try JeidReader(tag)
             session.alertMessage = "読み取り開始..."
             let cardType = try reader.detectCardType()
@@ -265,34 +293,34 @@ public class FlutterLibjeidPlugin: NSObject, FlutterPlugin, NFCTagReaderSessionD
             do {
                 let textMyNumber = try textFiles.getMyNumber()
                 if let myNumber = textMyNumber.myNumber {
-                    dataDict["card_mynumber"] = myNumber
+                    dataDict["in_mynumber"] = myNumber
                 }
             } catch JeidError.unsupportedOperation {
                 // 無償版の場合、INTextFiles#getMyNumber()でJeidError.unsupportedOperationが返ります
-                dataDict["card_mynumber"] = NSNull()
+                dataDict["in_mynumber"] = NSNull()
             } catch {
                 print(error)
             }
             let textAttrs = try textFiles.getAttributes()
             if let name = textAttrs.name {
-                dataDict["card_name"] = name
+                dataDict["in_name"] = name
             }
             if let birthDate = textAttrs.birthDate {
-                dataDict["card_birth"] = birthDate
+                dataDict["in_birth"] = birthDate
             }
             if let sexString = textAttrs.sexString {
-                dataDict["card_sex"] = sexString
+                dataDict["in_sex"] = sexString
             }
             if let address = textAttrs.address {
-                dataDict["card_address"] = address
+                dataDict["in_address"] = address
             }
             do {
                 session.alertMessage = "券面入力補助APの真正性検証"
                 let textApValidationResult = try textFiles.validate()
-                dataDict["validation_result"] = textApValidationResult.isValid
+                dataDict["in_validation"] = textApValidationResult.isValid
             } catch JeidError.unsupportedOperation {
                 // 無償版の場合、INTextFiles#validate()でJeidError.unsupportedOperationが返ります
-                dataDict["validation_result"] = NSNull()
+                dataDict["in_validation"] = NSNull()
             } catch {
                 print(error)
             }
@@ -305,34 +333,34 @@ public class FlutterLibjeidPlugin: NSObject, FlutterPlugin, NFCTagReaderSessionD
             session.alertMessage += "成功"
             let visualEntries = try visualFiles.getEntries()
             if let expireDate = visualEntries.expireDate {
-                dataDict["card_expire"] = expireDate
+                dataDict["in_expire"] = expireDate
             }
             if let birthDate = visualEntries.birthDate {
-                dataDict["card_birth2"] = birthDate
+                dataDict["in_birth2"] = birthDate
             }
             if let sexString = visualEntries.sexString {
-                dataDict["card_sex2"] = sexString
+                dataDict["in_sex2"] = sexString
             }
             if let nameImage = visualEntries.name {
                 let src = "\(nameImage.base64EncodedString())"
-                dataDict["card_name_image"] = src
+                dataDict["in_name_image"] = src
             }
             if let addressImage = visualEntries.address {
                 let src = "\(addressImage.base64EncodedString())"
-                dataDict["card_address_image"] = src
+                dataDict["in_address_image"] = src
             }
             if let photoData = visualEntries.photoData {
                 let src = "\(photoData.base64EncodedString())"
-                dataDict["card_photo"] = src
+                dataDict["in_photo"] = src
             }
             
             do {
                 session.alertMessage = "券面APの真正性検証"
                 let visualApValidationResult = try visualFiles.validate()
-                dataDict["visualap_validation_result"] = visualApValidationResult.isValid
+                dataDict["in_visualap_validation"] = visualApValidationResult.isValid
             } catch JeidError.unsupportedOperation {
                 // 無償版の場合、INVisualFiles#validate()でJeidError.unsupportedOperationが返ります
-                dataDict["visualap_validation_result"] = NSNull()
+                dataDict["in_visualap_validation"] = NSNull()
             }catch {
                 print(error)
             }
@@ -341,11 +369,11 @@ public class FlutterLibjeidPlugin: NSObject, FlutterPlugin, NFCTagReaderSessionD
                 let visualMyNumber = try visualFiles.getMyNumber()
                 if let myNumberImage = visualMyNumber.myNumber {
                     let src = "\(myNumberImage.base64EncodedString())"
-                    dataDict["card_mynumber_image"] = src
+                    dataDict["in_mynumber_image"] = src
                 }
             } catch JeidError.unsupportedOperation {
                 // 無償版の場合、INVisualFiles#getMyNumber()でJeidError.unsupportedOperationが返ります
-                dataDict["card_mynumber_image"] = NSNull()
+                dataDict["in_mynumber_image"] = NSNull()
             }catch {
                 print(error)
             }
@@ -353,6 +381,226 @@ public class FlutterLibjeidPlugin: NSObject, FlutterPlugin, NFCTagReaderSessionD
             session.invalidate()
             self.callback?(dataDict)
         }catch {
+            self.callback?(FlutterError(code: self.unknown, message: "Unknow error", details: nil))
+            session.invalidate(errorMessage: session.alertMessage + "失敗")
+        }
+    }
+    
+    func readDLCard(_ session: NFCTagReaderSession, didDetect tag: NFCTag, msgReadingHeader: String, msgErrorHeader: String) {
+        do{
+            let reader = try JeidReader(tag)
+            session.alertMessage = "\(msgReadingHeader)運転免許証の読み取り開始"
+            let cardType = try reader.detectCardType()
+            if (cardType != CardType.DL) {
+                self.callback?(FlutterError(code: self.invalidCardType, message: "Not a driver's license", details: nil) )
+                session.invalidate(errorMessage: "\(msgErrorHeader)運転免許証ではありません")
+                return
+            }
+            print("thread: \(Thread.current)")
+            let ap = try reader.selectDL()
+            // To read common data elements without entering a PIN, use
+            // DriverLicenseAP.readCommonData() can be used
+            // If you execute DriverLicenseAP.readFiles() without entering PIN1,
+            // Read only common data elements and personal identification number (PIN) settings.
+            session.alertMessage = "\(msgReadingHeader)暗証番号(PIN)設定"
+            let freeFiles = try ap.readFiles()
+            let pinSetting = try freeFiles.getPinSetting()
+            session.alertMessage += "成功"
+            do {
+                if !pinSetting.isPinSet {
+                    session.alertMessage = "暗証番号(PIN)設定がfalseのため、デフォルトPINの「****」を暗証番号として使用します"
+                    self.DLCardPin1 = self.DPIN
+                }
+                session.alertMessage = "\(msgReadingHeader)暗証番号1による認証..."
+                try ap.verifyPin1(self.DLCardPin1!)
+                session.alertMessage += "成功"
+            } catch let jeidError as JeidError {
+                switch jeidError {
+                case .invalidPin:
+                    self.callback?(FlutterError(code: self.incorrectCardPin, message: "Invalid PIN number 1", details: jeidError))
+                    session.invalidate(errorMessage: "\(msgErrorHeader)認証失敗(暗証番号1)")
+                    return
+                default:
+                    throw jeidError
+                }
+            }
+            do {
+                if !pinSetting.isPinSet {
+                    session.alertMessage = "暗証番号(PIN)設定がfalseのため、デフォルトPINの「****」を暗証番号として使用します"
+                    self.DLCardPin2 = self.DPIN
+                }
+                session.alertMessage = "\(msgReadingHeader)暗証番号2による認証..."
+                try ap.verifyPin2(self.DLCardPin2!)
+                session.alertMessage += "成功"
+            } catch let jeidError as JeidError {
+                switch jeidError {
+                case .invalidPin:
+                    session.invalidate(errorMessage: "\(msgErrorHeader)認証失敗(暗証番号2)")
+                    self.callback?(FlutterError(code: self.incorrectCardPin, message: "Invalid PIN number 2", details: jeidError))
+                    return
+                default:
+                    throw jeidError
+                }
+            }
+            session.alertMessage = "\(msgReadingHeader)ファイルの読み出し..."
+            // After entering the PIN, run DriverLicenseAP.readFiles()
+            // Read all files that can be read with the entered PIN.
+            // If only PIN1 is entered, files that require PIN2 entry (such as permanent address) will not be read.
+            let files = try ap.readFiles()
+            let entries = try files.getEntries()
+            var dataDict = Dictionary<String, Any>()
+            dataDict["dl_name"] = try self.dlStringToDictArray(entries.name)
+            if let kana = entries.kana {
+                dataDict["dl_kana"] = kana
+            }
+            if let birthDate = entries.birthDate {
+                dataDict["dl_birth"] = birthDate.stringValue
+            }
+            dataDict["dl_address"] = try self.dlStringToDictArray(entries.address)
+            if let issueDate = entries.issueDate {
+                dataDict["dl_issue"] = issueDate.stringValue
+            }
+            if let refNumber = entries.refNumber {
+                dataDict["dl_ref_number"] = refNumber
+            }
+            if let colorClass = entries.colorClass {
+                dataDict["dl_color_class"] = colorClass
+            }
+            if let expireDate = entries.expireDate {
+                dataDict["dl_expire"] = expireDate.stringValue
+                let now = Date()
+                let date = expireDate.dateValue.addingTimeInterval(60 * 60 * 24)
+                dataDict["dl_is_expired"] = Bool(now >= date)
+            }
+            if let licenseNumber = entries.licenseNumber {
+                dataDict["dl_number"] = licenseNumber
+            }
+            if let pscName = entries.pscName {
+                dataDict["dl_sc"]
+                = pscName.replacingCharacters(in: pscName.range(of: "公安委員会")!, with: "")
+            }
+            
+            var i: Int = 1
+            if let conditions = entries.conditions {
+                for condition in conditions {
+                    dataDict[String(format: "dl_condition%d", i)] = condition
+                    i += 1
+                }
+            }
+            if let categories = entries.categories {
+                var categoriesDict: [Dictionary<String, Any>] = []
+                for category in categories {
+                    var obj = Dictionary<String, Any>()
+                    obj["tag"] = category.tag
+                    obj["name"] = category.name
+                    obj["date"] = category.date.stringValue
+                    obj["licensed"] = category.isLicensed
+                    categoriesDict.append(obj)
+                }
+                dataDict["dl_categories"] = categoriesDict
+            }
+            let changedEntries = try files.getChangedEntries()
+            let formatter = DateFormatter()
+            formatter.timeZone = TimeZone(identifier: "Asia/Tokyo")
+            formatter.dateFormat = "yyyyMMdd"
+            var changes: [Dictionary<String, Any>] = []
+            if (changedEntries.isChanged) {
+                for newName in changedEntries.newNameList {
+                    var dict = Dictionary<String, Any>()
+                    dict["label"] = "新氏名"
+                    dict["date"] = newName.date.stringValue
+                    dict["ad"] = formatter.string(from: newName.date.dateValue)
+                    dict["value"] = try self.dlStringToDictArray(newName.value)
+                    dict["psc"] = newName.psc
+                    changes.append(dict)
+                }
+                for newAddress in changedEntries.newAddressList {
+                    var dict = Dictionary<String, Any>()
+                    dict["label"] = "新住所"
+                    dict["date"] = newAddress.date.stringValue
+                    dict["ad"] = formatter.string(from: newAddress.date.dateValue)
+                    dict["value"] = try self.dlStringToDictArray(newAddress.value)
+                    dict["psc"] = newAddress.psc
+                    changes.append(dict)
+                }
+                for newCond in changedEntries.newConditionList {
+                    var dict = Dictionary<String, Any>()
+                    dict["label"] = "新条件"
+                    dict["date"] = newCond.date.stringValue
+                    dict["ad"] = formatter.string(from: newCond.date.dateValue)
+                    dict["value"] = try self.dlStringToDictArray(newCond.value)
+                    dict["psc"] = newCond.psc
+                    changes.append(dict)
+                }
+                for condCancel in changedEntries.conditionCancellationList {
+                    var dict = Dictionary<String, Any>()
+                    dict["label"] = "条件解除"
+                    dict["date"] = condCancel.date.stringValue
+                    dict["ad"] = formatter.string(from: condCancel.date.dateValue)
+                    dict["value"] = try self.dlStringToDictArray(condCancel.value)
+                    dict["psc"] = condCancel.psc
+                    changes.append(dict)
+                }
+            }
+            do {
+                let registeredDomicile = try files.getRegisteredDomicile()
+                dataDict["dl_registered_domicile"] = try self.dlStringToDictArray(registeredDomicile.registeredDomicile)
+                
+                let photo = try files.getPhoto()
+                if let photoData = photo.photoData {
+                    let src = "\(photoData.base64EncodedString())"
+                    dataDict["dl_photo"] = src
+                }
+                
+                let changedRegDomicile = try files.getChangedRegisteredDomicile()
+                var newRegDomiciles: [Dictionary<String, Any>] = []
+                if (changedRegDomicile.isChanged) {
+                    for newRegDomicile in changedRegDomicile.newRegisteredDomicileList {
+                        var dict = Dictionary<String, Any>()
+                        dict["label"] = "新本籍"
+                        dict["date"] = newRegDomicile.date.stringValue
+                        dict["ad"] = formatter.string(from: newRegDomicile.date.dateValue)
+                        dict["value"] = try self.dlStringToDictArray(newRegDomicile.value)
+                        dict["psc"] = newRegDomicile.psc
+                        newRegDomiciles.append(dict)
+                    }
+                }
+                changes += newRegDomiciles
+                
+                let signature = try files.getSignature()
+                session.alertMessage = "\(msgReadingHeader)電子署名"
+                if let signatureIssuer = signature.issuer {
+                    dataDict["dl_signature_issuer"] = signatureIssuer
+                }
+                if let signatureSubject = signature.subject {
+                    dataDict["dl_signature_subject"] = signatureSubject
+                }
+                if let signatureSKI = signature.subjectKeyIdentifier {
+                    let signatureSkiStr = signatureSKI.map { String(format: "%.2hhx", $0) }.joined(separator: ":")
+                    dataDict["dl_signature_ski"] = signatureSkiStr
+                }
+                
+                session.alertMessage = "\(msgReadingHeader)真正性検証"
+                do {
+                    let result = try files.validate()
+                    dataDict["dl_verified"] = result.isValid
+                } catch JeidError.unsupportedOperation {
+                    //無償版の場合、DLFiles#validate()でJeidError.unsupportedOperationが返ります
+                   dataDict["dl_verified"] = NSNull()
+                } catch {
+                    print("\(error)")
+                }
+            } catch (JeidError.fileNotFound(message: _)) {
+                // PIN2を入力していない場合、filesオブジェクトは
+                // JeidError.fileNotFound(message: String)をスローします
+            }
+            
+            dataDict["dl_changes"] = changes
+            session.alertMessage = "読み取り完了"
+            session.invalidate()
+            self.callback?(dataDict)
+        }
+        catch {
             self.callback?(FlutterError(code: self.unknown, message: "Unknow error", details: nil))
             session.invalidate(errorMessage: session.alertMessage + "失敗")
         }
@@ -385,4 +633,14 @@ public class FlutterLibjeidPlugin: NSObject, FlutterPlugin, NFCTagReaderSessionD
         print(message)
         // TO-DO: Handle title and message
     }
+    
+    func dlStringToDictArray(_ dlString: DLString) throws -> [Dictionary<String, Any>] {
+        guard let jsonData = try dlString.toJSON().data(using: .utf8),
+              let jsonObj = try? JSONSerialization.jsonObject(with: jsonData, options: []),
+              let dictArray = jsonObj as? [Dictionary<String, Any>] else {
+            throw JeidError.decodeFailed(message: "failed to decode JSON String: \(try dlString.toJSON())")
+        }
+        return dictArray
+    }
+    
 }

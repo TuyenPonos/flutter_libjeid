@@ -1,5 +1,3 @@
-import 'package:flutter/services.dart';
-
 import 'flutter_libjeid_platform_interface.dart';
 
 class FlutterLibjeid {
@@ -7,12 +5,6 @@ class FlutterLibjeid {
   /// Input [cardNumber] ex: 123456789123
   /// Return {} when cancelled
   Future<Map<String, dynamic>> scanRCCard({required String cardNumber}) {
-    if (cardNumber.isEmpty) {
-      throw PlatformException(
-        code: 'not_input_card_number',
-        message: 'Please input a valid card number',
-      );
-    }
     return FlutterLibjeidPlatform.instance.scanRCCard(cardNumber: cardNumber);
   }
 
@@ -20,13 +12,21 @@ class FlutterLibjeid {
   /// Input [cardPin] ex: 1234
   /// Return {} when cancelled
   Future<Map<String, dynamic>> scanINCard({required String cardPin}) {
-    if (cardPin.length != 4) {
-      throw PlatformException(
-        code: 'not_input_card_pin',
-        message: 'Please input a valid card pin',
-      );
-    }
     return FlutterLibjeidPlatform.instance.scanINCard(cardPin: cardPin);
+  }
+
+  /// Scan DL Card
+  /// Input [cardPin1] ex: 1234
+  /// Input [cardPin2] ex: 1234
+  /// Return {} when cancelled
+  Future<Map<String, dynamic>> scanDLCard({
+    required String cardPin1,
+    required String cardPin2,
+  }) {
+    return FlutterLibjeidPlatform.instance.scanDLCard(
+      cardPin1: cardPin1,
+      cardPin2: cardPin2,
+    );
   }
 
   Future<void> stopScan() async {

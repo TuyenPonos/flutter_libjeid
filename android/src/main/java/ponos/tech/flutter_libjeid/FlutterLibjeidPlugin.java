@@ -62,9 +62,11 @@ public class FlutterLibjeidPlugin implements FlutterPlugin, MethodCallHandler, A
     private CardType cardType;
     protected String cardNumber;
     protected String cardPin;
+    protected String cardPin1;
+    protected String cardPin2;
 
     AlertDialog alertDialog;
-    private Handler uiThreadHandler = new Handler(Looper.getMainLooper());
+    private final Handler uiThreadHandler = new Handler(Looper.getMainLooper());
 
     @Override
     public void onAttachedToEngine(@NonNull FlutterPlugin.FlutterPluginBinding flutterPluginBinding) {
@@ -98,6 +100,7 @@ public class FlutterLibjeidPlugin implements FlutterPlugin, MethodCallHandler, A
             result.error(nfcConnectError, "NFC is unavailable", null);
             return;
         }
+        HashMap<String, Object> nameHash = new HashMap();
         switch (call.method) {
             case "scanRCCard":
                 String cardNumber = call.argument("card_number");
@@ -117,6 +120,22 @@ public class FlutterLibjeidPlugin implements FlutterPlugin, MethodCallHandler, A
                 }
                 this.cardType = CardType.IN;
                 this.cardPin = cardPin;
+                startScan();
+                break;
+            case "scanDLCard":
+                String cardPin1 = call.argument("pin_1");
+                if (cardPin1 == null || cardPin1.length() != 4) {
+                    result.error(notInputCardPin, "Please input a valid card pin 1", null);
+                    return;
+                }
+                String cardPin2 = call.argument("pin_2");
+                if (cardPin2 == null || cardPin2.length() != 4) {
+                    result.error(notInputCardPin, "Please input a valid card pin 2", null);
+                    return;
+                }
+                this.cardType = CardType.DL;
+                this.cardPin1 = cardPin1;
+                this.cardPin2 = cardPin2;
                 startScan();
                 break;
             case "stopScan":
@@ -156,7 +175,7 @@ public class FlutterLibjeidPlugin implements FlutterPlugin, MethodCallHandler, A
     }
 
     private void stopScan() {
-        if(alertDialog != null && alertDialog.isShowing()){
+        if (alertDialog != null && alertDialog.isShowing()) {
             alertDialog.hide();
         }
         if (nfcAdapter == null) {
@@ -186,6 +205,11 @@ public class FlutterLibjeidPlugin implements FlutterPlugin, MethodCallHandler, A
                 ExecutorService inExec = Executors.newSingleThreadExecutor();
                 inExec.submit(inTask);
                 break;
+            case DL:
+                DLReaderTask dlTask = new DLReaderTask(FlutterLibjeidPlugin.this, tag, this.cardPin1, this.cardPin2, FlutterLibjeidPlugin.this::logProgressMessage);
+                ExecutorService dlExec = Executors.newSingleThreadExecutor();
+                dlExec.submit(dlTask);
+                break;
             default:
                 break;
         }
@@ -197,7 +221,7 @@ public class FlutterLibjeidPlugin implements FlutterPlugin, MethodCallHandler, A
         View view = this.activity
                 .getLayoutInflater()
                 .inflate(R.layout.progress_dialog, null);
-        alertDialog = new AlertDialog.Builder(this.activity, AlertDialog.THEME_DEVICE_DEFAULT_LIGHT )
+        alertDialog = new AlertDialog.Builder(this.activity, AlertDialog.THEME_DEVICE_DEFAULT_LIGHT)
                 .setCancelable(false)
                 .setOnCancelListener(dialog -> stopScan())
                 .setView(view)
@@ -232,7 +256,7 @@ public class FlutterLibjeidPlugin implements FlutterPlugin, MethodCallHandler, A
             alertDialog.show();
             Button cancelButton = (Button) alertDialog.findViewById(R.id.cancel_button);
             cancelButton.setOnClickListener(v -> {
-                FlutterLibjeidPlugin.this.callback.success( new HashMap());
+                FlutterLibjeidPlugin.this.callback.success(new HashMap());
             });
         }
         if (alertDialog != null && alertDialog.isShowing()) {

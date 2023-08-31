@@ -41,20 +41,20 @@ The result return as `Map<String, dynamic>`. If scanning is cancelled, it return
 
 |Key          |Type          |Description                                                                   |
 |:----------------------|:----------------------|:-----------------------------------------------------------------------------|
-|card_mynumber|String?|The card number on card face. Free version return `null`|
-|card_mynumber_image|String?|The card number image, return Base64 encode as String. Free version return `null`|
-|card_name|String|The name on card face|
-|card_birth|String| The birthday on card face|
-|card_sex|String| The gender on card face|
-|card_address|String|The address on card face|
-|validation_result|bool?|Return `true` if card is valid. Free version return `null`|
-|card_expire|String|The card expired date|
-|card_birth2|String|The birthday 2 on card face|
-|card_sex2|String| The gender 2 on card face|
-|card_name_image|String|The card name image, return Base64 encode as String|
-|card_address_image|String|The card address image, return Base64 encode as String|
-|card_photo| String| The card photo image, return Base64 encode as String|
-|visualap_validation_result|bool?|Verification of authenticity of card surface AP. Return `true` if is valid. Free version return `null`|
+|in_mynumber|String?|The card number on card face. Free version return `null`|
+|in_mynumber_image|String?|The card number image, return Base64 encode as String. Free version return `null`|
+|in_name|String|The name on card face|
+|in_birth|String| The birthday on card face|
+|in_sex|String| The gender on card face|
+|in_address|String|The address on card face|
+|in_validation|bool?|Return `true` if card is valid. Free version return `null`|
+|in_expire|String|The card expired date|
+|in_birth2|String|The birthday 2 on card face|
+|in_sex2|String| The gender 2 on card face|
+|in_name_image|String|The card name image, return Base64 encode as String|
+|in_address_image|String|The card address image, return Base64 encode as String|
+|in_photo| String| The card photo image, return Base64 encode as String|
+|in_visualap_validation|bool?|Verification of authenticity of card surface AP. Return `true` if is valid. Free version return `null`|
 
 ### 2. Scan Residence card
 

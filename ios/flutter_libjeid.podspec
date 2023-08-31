@@ -4,7 +4,7 @@
 #
 Pod::Spec.new do |s|
   s.name             = 'flutter_libjeid'
-  s.version          = '0.0.3'
+  s.version          = '0.0.4'
   s.summary          = 'Flutter plugin to work with libjeid'
   s.description      = <<-DESC
 A new Flutter plugin project.
