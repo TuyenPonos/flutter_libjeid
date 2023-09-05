@@ -35,3 +35,7 @@
 ## 0.0.9
 
 * Add support driver license
+
+## 0.0.10
+
+* Fix some minor issues

@@ -60,7 +60,7 @@ public class RCReaderTask implements Runnable {
                 ap.startAC(rckey);
                 progressCallback.onProgress(msgReadingHeader + "SM開始&認証..." + "成功");
             } catch (InvalidACKeyException e) {
-                flutterPlugin.callback.error(flutterPlugin.incorrectCardNumber, "Incorrect card number", null);
+                flutterPlugin.callback.error(flutterPlugin.incorrectCardNumber, "Incorrect card number", e);
                 return;
             }
             progressCallback.onProgress(msgReadingHeader + "共通データ要素、カード種別...");

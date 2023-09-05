@@ -4,6 +4,8 @@ LibJeID (Library for Japanese Electronic ID) is a library for smartphones to acc
 
 ## Features
 
+**Now we are using free version of libjeid, so you don't need any product library key to install. The product library is under developing**
+
 ### Official document
 
 <https://www.osstech.co.jp/download/libjeid/>
@@ -14,12 +16,16 @@ LibJeID (Library for Japanese Electronic ID) is a library for smartphones to acc
 - Public personal authentication function of My Number Card
 - Reading of residence cards and special permanent resident certificates
 - Verification of authenticity of residence cards and special permanent resident certificates
+- Reading driver's license
+- Driving license authenticity verification
 
 ### iOS version function list
 
 - Reading my number card
 - Reading of residence cards and special permanent resident certificates
 - Verification of authenticity of residence cards and special permanent resident certificates
+- Reading driver's license
+- Driving license authenticity verification
 
 ### Functions item in free version and paid version
 
@@ -80,7 +86,20 @@ The result return as `Map<String, dynamic>`. If scanning is cancelled, it return
 |rc_address|String|The card address|
 |rc_valid|bool?|Return `true` if card is valid. Free version return `null`|
 
-### 3. Stop scanning
+### 3. Scan Driver License card
+
+You need pass the **Card PIN 1** and **Card PIN 2** of Driver License card, include 4 characters. Example "xxxx"
+
+```dart
+ final result = await FlutterLibjeid().scanDLCard(
+        cardPin1: 'xxxx',
+        cardPin2: 'xxxx',
+      );
+```
+
+The result return as `Map<String, dynamic>`. If scanning is cancelled, it returns empty `{}`
+
+### 4. Stop scanning
 
 After scanning successfully or throw Error, you should call stop scanning to close NFC session.
 
@@ -90,7 +109,7 @@ Try call this
 FlutterLibjeid.stopScan();
 ```
 
-### 4. Error codes
+### 5. Error codes
 
 |Code          |Description                                                                   |
 |:----------------------|:-----------------------------------------------------------------------------|
@@ -101,6 +120,16 @@ FlutterLibjeid.stopScan();
 |incorrect_card_pin| The card pin is incorrect when verifying card pin|
 |invalid_card_type| Card type is not support|
 |unknown| Common error|
+
+## Issue Tag Connection Lost
+
+There are some reason cause tag connect lost
+
+- The iPhone is very sensitive to positioning, so even a slight movement of the card during reading may result in "Tag connection lost".
+- There are differences in readability between devices. We have also confirmed that some devices can hardly read cards. Even with the same model, there may be individual differences.
+- Try to keep your card near by tag while reading, don't move it
+
+Issue is reported in official repository: <https://github.com/osstech-jp/libjeid-ios-app/issues/1>
 
 ## Contributions
 

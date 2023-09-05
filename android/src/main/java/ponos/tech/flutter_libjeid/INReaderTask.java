@@ -56,7 +56,7 @@ public class INReaderTask implements Runnable {
                 textAp.verifyPin(cardPin);
                 progressCallback.onProgress("暗証番号による認証..." + "成功");
             } catch (InvalidPinException e) {
-                flutterPlugin.callback.error(flutterPlugin.incorrectCardPin, "Incorrect card pin", null);
+                flutterPlugin.callback.error(flutterPlugin.incorrectCardPin, "Incorrect card pin", e);
                 return;
             }
             progressCallback.onProgress(msgReadingHeader + "券面入力補助AP内の情報...");

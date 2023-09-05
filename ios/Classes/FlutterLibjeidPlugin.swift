@@ -141,7 +141,7 @@ public class FlutterLibjeidPlugin: NSObject, FlutterPlugin, NFCTagReaderSessionD
             }
         } else {
             print("tagReaderSession error: " + error.localizedDescription)
-            self.callback?(FlutterError(code: self.unknown, message: "Unknow error: \(error.localizedDescription)", details: error))
+            self.callback?(FlutterError(code: self.unknown, message: "Unknown error: \(error.localizedDescription)", details: error))
         }
         self.session = nil
     }
@@ -254,7 +254,7 @@ public class FlutterLibjeidPlugin: NSObject, FlutterPlugin, NFCTagReaderSessionD
             self.callback?(dataDict)
         }
         catch {
-            self.callback?(FlutterError(code: self.unknown, message: "Unknow error", details: nil))
+            self.callback?(FlutterError(code: self.unknown, message: "Unknown error: \(error.localizedDescription)", details: error))
             session.invalidate(errorMessage: session.alertMessage + "失敗")
         }
         
@@ -381,7 +381,7 @@ public class FlutterLibjeidPlugin: NSObject, FlutterPlugin, NFCTagReaderSessionD
             session.invalidate()
             self.callback?(dataDict)
         }catch {
-            self.callback?(FlutterError(code: self.unknown, message: "Unknow error", details: nil))
+            self.callback?(FlutterError(code: self.unknown, message: "Unknown error: \(error.localizedDescription)", details: error))
             session.invalidate(errorMessage: session.alertMessage + "失敗")
         }
     }
@@ -601,7 +601,7 @@ public class FlutterLibjeidPlugin: NSObject, FlutterPlugin, NFCTagReaderSessionD
             self.callback?(dataDict)
         }
         catch {
-            self.callback?(FlutterError(code: self.unknown, message: "Unknow error", details: nil))
+            self.callback?(FlutterError(code: self.unknown, message: "Unknown error: \(error.localizedDescription)", details: error))
             session.invalidate(errorMessage: session.alertMessage + "失敗")
         }
     }
