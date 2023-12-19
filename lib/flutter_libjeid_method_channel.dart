@@ -47,6 +47,23 @@ class MethodChannelFlutterLibjeid extends FlutterLibjeidPlatform {
   }
 
   @override
+  Future<Map<String, dynamic>> scanEPCard({
+    required String cardNumber,
+    required String birthDate,
+    required String expiredDate,
+  }) async {
+    final response = await methodChannel.invokeMethod(
+      'scanRCCard',
+      {
+        'card_number': cardNumber,
+        'birth_date': birthDate,
+        'expired_date': expiredDate,
+      },
+    );
+    return Map.from(response);
+  }
+
+  @override
   Future<void> stopScan() async {
     await methodChannel.invokeMethod('stopScan');
   }

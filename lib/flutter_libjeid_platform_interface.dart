@@ -53,6 +53,23 @@ abstract class FlutterLibjeidPlatform extends PlatformInterface {
     return _instance.scanDLCard(cardPin1: cardPin1, cardPin2: cardPin2);
   }
 
+  /// Scan the EP (Passport) Card
+  /// Input [cardNumber] ex: 123456789123
+  /// Input [birthDate] (in YYMMDD format), for example: 231219
+  /// Input [expiredDate] (in YYMMDD format), for example: 231219
+  /// Return {} when cancelled
+  Future<Map<String, dynamic>> scanEPCard({
+    required String cardNumber,
+    required String birthDate,
+    required String expiredDate,
+  }) async {
+    return _instance.scanEPCard(
+      cardNumber: cardNumber,
+      birthDate: birthDate,
+      expiredDate: expiredDate,
+    );
+  }
+
   /// Stop all card scanning
   Future<void> stopScan() {
     return _instance.stopScan();
