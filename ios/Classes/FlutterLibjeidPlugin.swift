@@ -33,39 +33,51 @@ extension FlutterLibjeidPlugin: FlutterPlugin {
     }
 
     public func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
-        if call.method == "stopScan" {
-            self.cardScanner?.stopScan()
-            return
-        }
-        
-        if call.method == "setMessage" {
-            guard let args = call.arguments as? Dictionary<String, Any>, let message = args["message"] as? String else {
+        switch (call.method) {
+        case "isAvailable":
+            result(LibjeidCardScanner.isAvailable)
+            break
+            
+        case "stopScan":
+            self.cardScanner?.stopScanning()
+            break
+            
+        case "setMessage":
+            guard let args = call.arguments as? Dictionary<String, Any>,
+                  let message = args["message"] as? String else {
                 result(InvalidMethodArgumentsError().toFlutterError())
                 return
             }
             self.cardScanner?.setMessage(message: message)
-        }
+            break
+            
+        default:
+            do {
+                guard LibjeidCardScanner.isAvailable else {
+                    result(NfcNotAvailableError().toFlutterError())
+                    return
+                }
+                
+                guard let parser = try LibjeidCardParserFactory.make(fromFlutterMethod: call) else {
+                    result(FlutterMethodNotImplemented)
+                    return
+                }
 
-        do {
-            guard let parser = try LibjeidCardParserFactory.make(fromFlutterMethod: call) else {
-                result(FlutterMethodNotImplemented)
-                return
+                // Stop the previous scanning session (if any)
+                self.cardScanner?.stopScanning()
+
+                self.cardScanner = LibjeidCardScanner(parser: parser, delegate: self)
+                self.cardScanner?.startScanning()
+            } catch let error as FlutterLibjeidError {
+                result(error.toFlutterError())
+            } catch {
+                result(UnknownError(message: error.localizedDescription).toFlutterError())
             }
-
-            // Stop the previous scanning session (if any)
-            self.cardScanner?.stopScan()
-
-            self.cardScanner = LibjeidCardScanner(parser: parser, delegate: self)
-            self.cardScanner?.scan()
-        } catch let error as FlutterLibjeidError {
-            result(error.toFlutterError())
-        } catch {
-            result(UnknownError(message: error.localizedDescription).toFlutterError())
         }
     }
     
     public func detachFromEngine(for registrar: FlutterPluginRegistrar) {
-        self.cardScanner?.stopScan()
+        self.cardScanner?.stopScanning()
     }
 }
 

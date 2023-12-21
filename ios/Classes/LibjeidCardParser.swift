@@ -18,8 +18,8 @@ protocol LibjeidCardParser {
 class LibjeidDriverLicenseCardParser: LibjeidCardParser {
     typealias T = DriverLicenseCardData
 
-    var pin1: String?
-    var pin2: String?
+    let pin1: String?
+    let pin2: String?
     
     init(pin1: String? = nil, pin2: String? = nil) {
         self.pin1 = pin1
@@ -30,12 +30,15 @@ class LibjeidDriverLicenseCardParser: LibjeidCardParser {
         let files = try ap.readFiles()
         let pinSetting = try files.getPinSetting()
         
+        var pin1 = self.pin1
+        var pin2 = self.pin2
+        
         if !pinSetting.isPinSet {
             pin1 = "****"
             pin2 = "****"
         }
         
-        guard let pin1 = self.pin1, let pin2 = self.pin2 else {
+        guard let pin1 = pin1, let pin2 = pin2 else {
             throw InvalidMethodArgumentsError()
         }
         
@@ -109,7 +112,7 @@ class LibjeidDriverLicenseCardParser: LibjeidCardParser {
 class LibjeidMyNumberCardParser: LibjeidCardParser {
     typealias T = MyNumberCardData
     
-    var pin: String
+    let pin: String
     
     init(pin: String) {
         self.pin = pin
@@ -170,7 +173,7 @@ class LibjeidMyNumberCardParser: LibjeidCardParser {
 class LibjeidResidentCardParser: LibjeidCardParser {
     typealias T = ResidentCardData
     
-    var cardNumber: String
+    let cardNumber: String
     
     init(cardNumber: String) {
         self.cardNumber = cardNumber
@@ -233,9 +236,9 @@ class LibjeidResidentCardParser: LibjeidCardParser {
 class LibjeidPassportCardParser: LibjeidCardParser {
     typealias T = PassportCardData
     
-    var cardNumber: String
-    var birthDate: String
-    var expiredDate: String
+    let cardNumber: String
+    let birthDate: String
+    let expiredDate: String
     
     init(cardNumber: String, birthDate: String, expiredDate: String) {
         self.cardNumber = cardNumber

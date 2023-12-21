@@ -1,69 +1,106 @@
 package ponos.tech.flutter_libjeid
 
-import java.lang.Exception
+import jp.co.osstech.libjeid.InvalidACKeyException
+import jp.co.osstech.libjeid.InvalidBACKeyException
+import jp.co.osstech.libjeid.InvalidPinException
+import kotlin.Exception
 
-abstract class FlutterLibjeidError(
+open class FlutterLibjeidException(
         val code: String,
         override val message: String,
-        val details: Any? = null
-): Exception()
+        val details: Map<String, String?>? = null
+): Exception() {
+    companion object {
+        fun fromException(e: Exception): FlutterLibjeidException {
+            if (e is FlutterLibjeidException) {
+                return e
+            }
 
-class NfcNotAvailableError: FlutterLibjeidError(
+            if (e is InvalidPinException) {
+                if (e.isBlocked) {
+                    return NfcCardBlockedException()
+                }
+
+                return FlutterLibjeidException(
+                        code = "InvalidPin",
+                        message = "Invalid PIN code, remaining time(s): ${e.counter}",
+                        details = mapOf("remainingTimes" to "${e.counter}")
+                )
+            }
+
+            if (e is InvalidBACKeyException) {
+                return FlutterLibjeidException(
+                        code = "InvalidKey",
+                        message = e.message ?: "Invalid BAC key"
+                )
+            }
+
+            if (e is InvalidACKeyException) {
+                return FlutterLibjeidException(
+                        code = "InvalidKey",
+                        message = e.message ?: "Invalid AC key"
+                )
+            }
+
+            return UnknownException(code = e.message, message = e.message)
+        }
+    }
+
+    fun toJSON(): Map<String, Any?> {
+        return mapOf(
+            "code" to code,
+            "message" to message,
+            "details" to details
+        )
+    }
+}
+
+class NfcNotAvailableException: FlutterLibjeidException(
         code = "NfcNotAvailable",
         message = "NFC is not available on this device"
 )
 
-class NfcTagUnabvaloConnectError(details: Any? = null): FlutterLibjeidError(
-        code = "NfcTagUnabvaloConnect",
+class NfcTagUnableToConnectException(
+        details: Map<String, String?>? = null
+): FlutterLibjeidException(
+        code = "NfcTagUnableToConnect",
         message = "Cannot connect to NFC tag",
         details
 )
 
-class InvalidMethodArgumentsError(details: Any? = null): FlutterLibjeidError(
+class NfcCardBlockedException(
+        details: Map<String, String?>? = null
+): FlutterLibjeidException(
+        code = "NfcCardBlocked",
+        message = "The card is blocked",
+        details
+)
+
+class NfcCardTypeMismatchException(
+        details: Map<String, String?>? = null
+): FlutterLibjeidException(
+        code = "NfcCardTypeMismatch",
+        message = "The card type does not match",
+        details
+)
+
+class InvalidMethodArgumentsException(
+        details: Map<String, String?>? = null
+): FlutterLibjeidException(
         code = "InvalidMethodArguments",
         message = "Invalid method channel arguments",
         details
 )
 
-class CardTypeMismatchError: FlutterLibjeidError(
-        code = "CardTypeMismatch",
-        message = "The scanned card type is not match with the selected card"
-)
-
-class NfcCardBlockedError: FlutterLibjeidError(
-        code = "NfcCardBlocked",
-        message = "The NFC card is blocked"
-)
-
-class InvalidDriverLicensePinError(details: Any? = null): FlutterLibjeidError(
-        code = "InvalidDriverLicensePin",
-        message = "The PIN code(s) of the Driver License card is incorrect",
-        details
-)
-
-class InvalidMyNumberPinError(details: Any? = null): FlutterLibjeidError(
-        code = "InvalidMyNumberPin",
-        message = "The PIN code(s) of the My Number card is incorrect",
-        details
-)
-
-class InvalidResidentCardNumberError(details: Any? = null): FlutterLibjeidError(
-        code = "InvalidResidentCardNumberError",
-        message = "The number of the Resident card is incorrect",
-        details
-)
-
-class InvalidPassportInformationError(details: Any? = null): FlutterLibjeidError(
-        code = "InvalidPassportInformation",
-        message = "The Passport card information provided does not match",
-        details
-)
-
-class UnknownError(details: Any? = null): FlutterLibjeidError(
+class UnknownException(
+        details: Map<String, String?>? = null
+): FlutterLibjeidException(
         code = "Unknown",
         message = "Unknown error",
         details
-)
-
-
-
+) {
+    constructor(code: String? = null, message: String? = null): this(mapOf(
+            "code" to code,
+            "message" to message
+    ))
+}

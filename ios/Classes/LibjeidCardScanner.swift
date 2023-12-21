@@ -38,7 +38,7 @@ class LibjeidCardScanner: NSObject {
         self.parser = parser
     }
     
-    func scan() {
+    func startScanning() {
         if (!NFCReaderSession.readingAvailable) {
             self.delegate?.libjeidCardScanner(self, didFailWithError: NfcNotAvailableError())
             return
@@ -48,7 +48,7 @@ class LibjeidCardScanner: NSObject {
         self.session?.begin()
     }
     
-    func stopScan(errorMessage: String? = nil) {
+    func stopScanning(errorMessage: String? = nil) {
         guard self.session?.isReady == true else { return }
 
         if let nonNullMessage = errorMessage {
