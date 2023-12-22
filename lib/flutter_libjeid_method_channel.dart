@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 
+import 'src/events.dart';
 import 'flutter_libjeid_platform_interface.dart';
 
 /// An implementation of [FlutterLibjeidPlatform] that uses method channels.
@@ -9,62 +10,80 @@ class MethodChannelFlutterLibjeid extends FlutterLibjeidPlatform {
   @visibleForTesting
   final methodChannel = const MethodChannel('flutter_libjeid');
 
+  @visibleForTesting
+  final eventChannel = const EventChannel('flutter_libjeid_card_data_event');
+
+  Stream<FlutterLibjeidEvent>? _eventStream;
+
   @override
-  Future<Map<String, dynamic>> scanRCCard({required String cardNumber}) async {
-    final response = await methodChannel.invokeMethod(
-      'scanRCCard',
-      {
-        'card_number': cardNumber,
-      },
-    );
-    return Map.from(response);
+  Future<bool> isAvailable() async {
+    final isAvailable = await methodChannel.invokeMethod<bool>('isAvailable');
+    return isAvailable ?? false;
   }
 
   @override
-  Future<Map<String, dynamic>> scanINCard({required String cardPin}) async {
-    final response = await methodChannel.invokeMethod(
-      'scanINCard',
-      {
-        'pin': cardPin,
-      },
-    );
-    return Map.from(response);
+  Future<void> setMessage({
+    required String message,
+  }) {
+    return methodChannel.invokeMethod('setMessage', {
+      'message': message,
+    });
   }
 
   @override
-  Future<Map<String, dynamic>> scanDLCard({
-    required String cardPin1,
-    required String cardPin2,
-  }) async {
-    final response = await methodChannel.invokeMethod(
-      'scanDLCard',
-      {
-        'pin_1': cardPin1,
-        'pin_2': cardPin2,
-      },
-    );
-    return Map.from(response);
+  Future<void> scanResidentCard({
+    required String cardNumber,
+  }) {
+    return methodChannel.invokeMethod('scanResidentCard', {
+      'card_number': cardNumber,
+    });
   }
 
   @override
-  Future<Map<String, dynamic>> scanEPCard({
+  Future<void> scanMyNumberCard({
+    required String pin,
+  }) {
+    return methodChannel.invokeMethod('scanMyNumberCard', {
+      'pin': pin,
+    });
+  }
+
+  @override
+  Future<void> scanDriverLicenseCard({
+    required String pin1,
+    required String pin2,
+  }) {
+    return methodChannel.invokeMethod('scanDriverLicenseCard', {
+      'pin1': pin1,
+      'pin2': pin2,
+    });
+  }
+
+  @override
+  Future<void> scanPassportCard({
     required String cardNumber,
     required String birthDate,
     required String expiredDate,
-  }) async {
-    final response = await methodChannel.invokeMethod(
-      'scanRCCard',
-      {
-        'card_number': cardNumber,
-        'birth_date': birthDate,
-        'expired_date': expiredDate,
-      },
-    );
-    return Map.from(response);
+  }) {
+    return methodChannel.invokeMethod('scanPassportCard', {
+      'card_number': cardNumber,
+      'birth_date': birthDate,
+      'expired_date': expiredDate,
+    });
   }
 
   @override
-  Future<void> stopScan() async {
-    await methodChannel.invokeMethod('stopScan');
+  Future<void> stopScan() {
+    return methodChannel.invokeMethod('stopScan');
+  }
+
+  @override
+  Stream<FlutterLibjeidEvent> get eventStream {
+    _eventStream ??= eventChannel
+        .receiveBroadcastStream()
+        .map((event) => Map.from(event))
+        .map(FlutterLibjeidEvent.parse);
+
+    return _eventStream!;
   }
 }

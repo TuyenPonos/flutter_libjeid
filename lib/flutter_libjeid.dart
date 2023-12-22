@@ -1,52 +1,67 @@
+import 'src/events.dart';
 import 'flutter_libjeid_platform_interface.dart';
 
 class FlutterLibjeid {
-  /// Scan RC Card
-  /// Input [cardNumber] ex: 123456789123
-  /// Return {} when cancelled
-  Future<Map<String, dynamic>> scanRCCard({required String cardNumber}) {
-    return FlutterLibjeidPlatform.instance.scanRCCard(cardNumber: cardNumber);
+  /// Check whether the NFC reader is available on the device
+  Future<bool> isAvailable() {
+    return FlutterLibjeidPlatform.instance.isAvailable();
   }
 
-  /// Scan IN Card
-  /// Input [cardPin] ex: 1234
-  /// Return {} when cancelled
-  Future<Map<String, dynamic>> scanINCard({required String cardPin}) {
-    return FlutterLibjeidPlatform.instance.scanINCard(cardPin: cardPin);
-  }
-
-  /// Scan DL Card
-  /// Input [cardPin1] ex: 1234
-  /// Input [cardPin2] ex: 1234
-  /// Return {} when cancelled
-  Future<Map<String, dynamic>> scanDLCard({
-    required String cardPin1,
-    required String cardPin2,
+  /// Set the message that will be displayed on the NFC reader dialog
+  Future<void> setMessage({
+    required String message,
   }) {
-    return FlutterLibjeidPlatform.instance.scanDLCard(
-      cardPin1: cardPin1,
-      cardPin2: cardPin2,
-    );
+    return FlutterLibjeidPlatform.instance.setMessage(message: message);
   }
 
-  /// Scan the EP (Passport) Card
-  /// Input [cardNumber] ex: 123456789123
-  /// Input [birthDate] (in YYMMDD format), for example: 231219
-  /// Input [expiredDate] (in YYMMDD format), for example: 231219
-  /// Return {} when cancelled
-  Future<Map<String, dynamic>> scanEPCard({
+  /// Start the Resident (RC) Card scanning process
+  /// The [cardNumber] value is required to read the content of the card
+  Future<void> scanResidentCard({
+    required String cardNumber,
+  }) {
+    return FlutterLibjeidPlatform.instance.scanResidentCard(cardNumber: cardNumber);
+  }
+
+  /// Start the My Number (IN) Card scanning process
+  /// The [pin] is required to read the content of the card
+  Future<void> scanMyNumberCard({
+    required String pin,
+  }) {
+    return FlutterLibjeidPlatform.instance.scanMyNumberCard(pin: pin);
+  }
+
+  /// Start the Driver License (DL) Card scanning process
+  /// The [pin1] and [pin2] is required to read the content of the card
+  Future<void> scanDriverLicenseCard({
+    required String pin1,
+    required String pin2,
+  }) async {
+    return FlutterLibjeidPlatform.instance.scanDriverLicenseCard(pin1: pin1, pin2: pin2);
+  }
+
+  /// Start the Passport (EP) Card scanning progress
+  /// The [cardNumber], [birthDate], and [expiredDate] is required to read the content of the card
+  Future<void> scanPassportCard({
     required String cardNumber,
     required String birthDate,
     required String expiredDate,
-  }) {
-    return FlutterLibjeidPlatform.instance.scanEPCard(
+  }) async {
+    return FlutterLibjeidPlatform.instance.scanPassportCard(
       cardNumber: cardNumber,
       birthDate: birthDate,
       expiredDate: expiredDate,
     );
   }
 
-  Future<void> stopScan() async {
+  /// Stop the current scanning progress
+  /// Will do nothing if there is no scanning progress
+  Future<void> stopScan() {
     return FlutterLibjeidPlatform.instance.stopScan();
+  }
+
+  /// Get the event stream of the NFC reader
+  /// The event stream will emit [FlutterLibjeidEvent] when the NFC reader state is changed
+  Stream<FlutterLibjeidEvent> get eventStream {
+    return FlutterLibjeidPlatform.instance.eventStream;
   }
 }

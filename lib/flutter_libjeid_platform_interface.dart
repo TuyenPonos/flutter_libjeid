@@ -1,5 +1,6 @@
 import 'package:plugin_platform_interface/plugin_platform_interface.dart';
 
+import 'src/events.dart';
 import 'flutter_libjeid_method_channel.dart';
 
 abstract class FlutterLibjeidPlatform extends PlatformInterface {
@@ -23,55 +24,60 @@ abstract class FlutterLibjeidPlatform extends PlatformInterface {
     _instance = instance;
   }
 
-  /// Scan RC Card
-  /// Input [cardNumber] ex: 123456789123
-  /// Return {} when cancelled
+  /// Check whether the NFC reader is available on the device
+  Future<bool> isAvailable() {
+    throw UnimplementedError('isAvailable() has not been implemented.');
+  }
 
-  Future<Map<String, dynamic>> scanRCCard({
+  /// Set the message that will be displayed on the NFC reader dialog
+  Future<void> setMessage({
+    required String message,
+  }) {
+    throw UnimplementedError('setMessage() has not been implemented.');
+  }
+
+  /// Start the Resident (RC) Card scanning process
+  /// The [cardNumber] value is required to read the content of the card
+  Future<void> scanResidentCard({
     required String cardNumber,
   }) {
-    return _instance.scanRCCard(cardNumber: cardNumber);
+    throw UnimplementedError('scanResidentCard() has not been implemented.');
   }
 
-  /// Scan IN Card
-  /// Input [cardPin] ex: 1234
-  /// Return {} when cancelled
-  Future<Map<String, dynamic>> scanINCard({
-    required String cardPin,
+  /// Start the My Number (IN) Card scanning process
+  /// The [pin] is required to read the content of the card
+  Future<void> scanMyNumberCard({
+    required String pin,
   }) {
-    return _instance.scanINCard(cardPin: cardPin);
+    throw UnimplementedError('scanMyNumberCard() has not been implemented.');
   }
 
-  /// Scan DL Card
-  /// Input [cardPin1] ex: 1234
-  /// Input [cardPin2] ex: 1234
-  /// Return {} when cancelled
-  Future<Map<String, dynamic>> scanDLCard({
-    required String cardPin1,
-    required String cardPin2,
+  /// Start the Driver License (DL) Card scanning process
+  /// The [pin1] and [pin2] is required to read the content of the card
+  Future<void> scanDriverLicenseCard({
+    required String pin1,
+    required String pin2,
   }) async {
-    return _instance.scanDLCard(cardPin1: cardPin1, cardPin2: cardPin2);
+    throw UnimplementedError('scanDriverLicenseCard() has not been implemented.');
   }
 
-  /// Scan the EP (Passport) Card
-  /// Input [cardNumber] ex: 123456789123
-  /// Input [birthDate] (in YYMMDD format), for example: 231219
-  /// Input [expiredDate] (in YYMMDD format), for example: 231219
-  /// Return {} when cancelled
-  Future<Map<String, dynamic>> scanEPCard({
+  /// Start the Passport (EP) Card scanning progress
+  /// The [cardNumber], [birthDate], and [expiredDate] is required to read the content of the card
+  Future<void> scanPassportCard({
     required String cardNumber,
     required String birthDate,
     required String expiredDate,
   }) async {
-    return _instance.scanEPCard(
-      cardNumber: cardNumber,
-      birthDate: birthDate,
-      expiredDate: expiredDate,
-    );
+    throw UnimplementedError('scanPassportCard() has not been implemented.');
   }
 
-  /// Stop all card scanning
+  /// Stop the current scanning progress
+  /// Will do nothing if there is no scanning progress
   Future<void> stopScan() {
-    return _instance.stopScan();
+    throw UnimplementedError('stopScan() has not been implemented.');
+  }
+
+  Stream<FlutterLibjeidEvent> get eventStream {
+    throw UnimplementedError('get onConnectivityChanged has not been implemented.');
   }
 }
