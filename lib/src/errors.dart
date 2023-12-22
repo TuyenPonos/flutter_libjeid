@@ -7,7 +7,7 @@ class FlutterLibjeidError extends Error {
 
   @override
   String toString() {
-    return 'FlutterLibjeidError: $code - $message - ${details.toString()}';
+    return 'FlutterLibjeidError(code: $code, message: $message, details: ${details.toString()})';
   }
 
   factory FlutterLibjeidError.fromJSON(Map<String, dynamic> json) {

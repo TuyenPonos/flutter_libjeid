@@ -20,120 +20,113 @@ class MyApp extends StatefulWidget {
 class _MyAppState extends State<MyApp> with SingleTickerProviderStateMixin {
   Map<String, dynamic> _data = {};
   String? _error;
+
   final _flutterLibjeidPlugin = FlutterLibjeid();
   final TextEditingController _rcCardNumberController = TextEditingController();
   final TextEditingController _inCardPinController = TextEditingController();
   final TextEditingController _dlCardPin1Controller = TextEditingController();
   final TextEditingController _dlCardPin2Controller = TextEditingController();
+  final TextEditingController _epCardNumberController = TextEditingController();
+  final TextEditingController _epCardBirthDateController = TextEditingController();
+  final TextEditingController _epCardExpiredDateController = TextEditingController();
 
   late final TabController _tabController;
+  late final StreamSubscription<FlutterLibjeidEvent> _eventStreamSubscription;
 
   @override
   void initState() {
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController = TabController(length: 4, vsync: this);
+    _eventStreamSubscription = _flutterLibjeidPlugin.eventStream.listen(_onEventReceived);
+
+    scheduleMicrotask(() {
+      _flutterLibjeidPlugin.isAvailable().then((isAvailable) {
+        if (!isAvailable) {
+          setState(() => _error = 'NFC Not Available');
+        }
+      });
+    });
     super.initState();
   }
 
-  Future<void> startScanRCCard() async {
+  @override
+  void dispose() {
+    _eventStreamSubscription.cancel();
+    super.dispose();
+  }
+
+  void _onEventReceived(FlutterLibjeidEvent event) {
+    switch (event) {
+      case FlutterLibjeidEventScanning():
+        _flutterLibjeidPlugin.setMessage(message: 'Scanning...');
+        setState(() {
+          _data = Map.from({});
+          _error = null;
+        });
+        break;
+
+      case FlutterLibjeidEventConnecting():
+        _flutterLibjeidPlugin.setMessage(message: 'Connecting...');
+        break;
+
+      case FlutterLibjeidEventParsing():
+        _flutterLibjeidPlugin.setMessage(message: 'Parsing...');
+        break;
+
+      case FlutterLibjeidEventSuccess(data: FlutterLibjeidCardData data):
+        _flutterLibjeidPlugin.stopScan();
+        setState(() => _data = data.toJSON());
+        break;
+
+      case FlutterLibjeidEventFailed(error: FlutterLibjeidError error):
+        _flutterLibjeidPlugin.stopScan();
+        setState(() => _error = error.toString());
+        break;
+
+      case FlutterLibjeidEventCancelled():
+        break;
+    }
+  }
+
+  Future<void> startScanResidentCard() async {
     try {
-      if (!mounted) {
-        return;
-      }
-      setState(() {
-        _data = Map.from({});
-        _error = null;
-      });
-      final resp = await _flutterLibjeidPlugin.scanRCCard(
+      await _flutterLibjeidPlugin.scanResidentCard(
         cardNumber: _rcCardNumberController.text,
       );
-      if (mounted && resp.isNotEmpty) {
-        setState(() {
-          _data = Map.from(resp);
-        });
-      }
-    } on PlatformException catch (e) {
-      if (mounted) {
-        setState(() {
-          _error = 'Code: "${e.code}": ${e.message}';
-        });
-      }
     } catch (e) {
-      if (mounted) {
-        setState(() {
-          _error = e.toString();
-        });
-      }
-    } finally {
-      _flutterLibjeidPlugin.stopScan();
+      setState(() => _error = e.toString());
     }
   }
 
-  Future<void> startScanINCard() async {
+  Future<void> scanMyNumberCard() async {
     try {
-      if (!mounted) {
-        return;
-      }
-      setState(() {
-        _data = Map.from({});
-        _error = null;
-      });
-      final resp = await _flutterLibjeidPlugin.scanINCard(
-        cardPin: _inCardPinController.text,
+      await _flutterLibjeidPlugin.scanMyNumberCard(
+        pin: _inCardPinController.text,
       );
-      if (mounted && resp.isNotEmpty) {
-        setState(() {
-          _data = Map.from(resp);
-        });
-      }
-    } on PlatformException catch (e) {
-      if (mounted) {
-        setState(() {
-          _error = '${e.code}: ${e.message}';
-        });
-      }
     } catch (e) {
-      if (mounted) {
-        setState(() {
-          _error = e.toString();
-        });
-      }
-    } finally {
-      _flutterLibjeidPlugin.stopScan();
+      setState(() => _error = e.toString());
     }
   }
 
-  Future<void> startScanDLCard() async {
+  Future<void> startScanDriverLicenseCard() async {
     try {
-      if (!mounted) {
-        return;
-      }
-      setState(() {
-        _data = Map.from({});
-        _error = null;
-      });
-      final resp = await _flutterLibjeidPlugin.scanDLCard(
-        cardPin1: _dlCardPin1Controller.text,
-        cardPin2: _dlCardPin2Controller.text,
+      await _flutterLibjeidPlugin.scanDriverLicenseCard(
+        pin1: _dlCardPin1Controller.text,
+        pin2: _dlCardPin2Controller.text,
       );
-      if (mounted && resp.isNotEmpty) {
-        setState(() {
-          _data = Map.from(resp);
-        });
-      }
-    } on PlatformException catch (e) {
-      if (mounted) {
-        setState(() {
-          _error = '${e.code}: ${e.message}';
-        });
-      }
     } catch (e) {
-      if (mounted) {
-        setState(() {
-          _error = e.toString();
-        });
-      }
-    } finally {
-      _flutterLibjeidPlugin.stopScan();
+      setState(() => _error = e.toString());
+    }
+  }
+
+  Future<void> startScanPassportCard() async {
+    try {
+      await _flutterLibjeidPlugin.scanPassportCard(
+        cardNumber: _epCardNumberController.text,
+        birthDate: _epCardBirthDateController.text,
+        expiredDate: _epCardExpiredDateController.text,
+      );
+    } catch (e) {
+      setState(() => _error = e.toString());
     }
   }
 
@@ -162,9 +155,10 @@ class _MyAppState extends State<MyApp> with SingleTickerProviderStateMixin {
                 labelColor: Colors.blue,
                 isScrollable: true,
                 tabs: const [
-                  SizedBox(height: 30, child: Text('My number')),
-                  SizedBox(height: 30, child: Text('Driver License')),
-                  SizedBox(height: 30, child: Text('Residence')),
+                  SizedBox(height: 30, child: Text('My number (IN)')),
+                  SizedBox(height: 30, child: Text('Driver License (DL)')),
+                  SizedBox(height: 30, child: Text('Residence (RC)')),
+                  SizedBox(height: 30, child: Text('Passport (EP)')),
                 ],
                 onTap: (index) {
                   setState(() {
@@ -174,8 +168,7 @@ class _MyAppState extends State<MyApp> with SingleTickerProviderStateMixin {
                 },
               ),
               const SizedBox(height: 10),
-              SizedBox(
-                height: 130,
+              Expanded(
                 child: TabBarView(
                   controller: _tabController,
                   children: [
@@ -190,7 +183,7 @@ class _MyAppState extends State<MyApp> with SingleTickerProviderStateMixin {
                         ),
                         const SizedBox(height: 10),
                         ElevatedButton(
-                          onPressed: startScanINCard,
+                          onPressed: scanMyNumberCard,
                           child: const Text('Scan My Number Card'),
                         ),
                       ],
@@ -222,7 +215,7 @@ class _MyAppState extends State<MyApp> with SingleTickerProviderStateMixin {
                         ),
                         const SizedBox(height: 10),
                         ElevatedButton(
-                          onPressed: startScanDLCard,
+                          onPressed: startScanDriverLicenseCard,
                           child: const Text('Scan Driver License Card'),
                         ),
                       ],
@@ -238,7 +231,37 @@ class _MyAppState extends State<MyApp> with SingleTickerProviderStateMixin {
                         ),
                         const SizedBox(height: 10),
                         ElevatedButton(
-                          onPressed: startScanRCCard,
+                          onPressed: startScanResidentCard,
+                          child: const Text('Scan Residence Card'),
+                        ),
+                      ],
+                    ),
+                    Column(
+                      children: [
+                        TextFormField(
+                          maxLength: 12,
+                          controller: _epCardNumberController,
+                          decoration: const InputDecoration(
+                            hintText: 'Input card number',
+                          ),
+                        ),
+                        TextFormField(
+                          maxLength: 12,
+                          controller: _epCardBirthDateController,
+                          decoration: const InputDecoration(
+                            hintText: 'Input birth date (YYMMDD)',
+                          ),
+                        ),
+                        TextFormField(
+                          maxLength: 12,
+                          controller: _epCardExpiredDateController,
+                          decoration: const InputDecoration(
+                            hintText: 'Input expired date (YYMMDD)',
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        ElevatedButton(
+                          onPressed: startScanResidentCard,
                           child: const Text('Scan Residence Card'),
                         ),
                       ],
