@@ -23,14 +23,14 @@ import java.util.Locale
 import java.util.TimeZone
 
 
-abstract class FlutterLibjeidCardParser<T: CardData> {
-    abstract fun read(tag: Tag): T
+abstract class FlutterLibjeidCardParser {
+    abstract fun read(tag: Tag): HashMap<String, Any?>
 }
 
 class LibjeidDriverLicenseCardParser(
         private val pin1: String?,
         private val pin2: String?,
-): FlutterLibjeidCardParser<DriverLicenseCardData>() {
+) : FlutterLibjeidCardParser() {
     private fun authenticate(ap: DriverLicenseAP) {
         val files = ap.readFiles()
         val pinSetting = files.pinSetting
@@ -51,7 +51,7 @@ class LibjeidDriverLicenseCardParser(
         ap.verifyPin2(pin2)
     }
 
-    override fun read(tag: Tag): DriverLicenseCardData {
+    override fun read(tag: Tag): HashMap<String, Any?> {
         val reader = JeidReader(tag)
         val type = reader.detectCardType()
 
@@ -75,51 +75,52 @@ class LibjeidDriverLicenseCardParser(
         val photoSrc = photo.photoBitmapARGB.toBase64PngImage()
         val verifyStatus = files.validate()
 
-        return DriverLicenseCardData(
-            name = entries.name.toString(),
-            kana = entries.kana,
-            aliasName = entries.aliasName.toString(),
-            callName = entries.callName,
-            birthDate = entries.birthDate?.toISOString(),
-            address = entries.addr.toString(),
-            issueDate = commonData.issueDate.toISOString(),
-            refNumber = entries.refNumber,
-            colorClass = entries.colorClass,
-            expireDate = commonData.expireDate.toISOString(),
-            licenseNumber = entries.licenseNumber,
-            pscName = entries.pscName,
-            registeredDomicile = registeredDomicile.registeredDomicile.toString(),
-            photo = photoSrc,
-            signatureIssuer = signature.issuer,
-            signatureSubject = signature.subject,
-            signatureSKI = Hex.encode(signature.subjectKeyIdentifier, ":"),
-            verified = verifyStatus.isValid,
-            categories = entries.categories.map { cat ->
-                DriverLicenseCardData.Category(
-                        tag = cat.tag,
-                        name = cat.name,
-                        date = cat.date.toISOString(),
-                        isLicensed = cat.isLicensed
-                )
-            },
-            nameHistoryRecords = changedEntries.newNameList.map { entry -> entry.toChangeHistory() },
-            addressHistoryRecords = changedEntries.newAddrList.map { entry -> entry.toChangeHistory() },
-            conditionHistoryRecords = changedEntries.newConditionList.map { entry -> entry.toChangeHistory() },
-            conditionCancellationHistoryRecords = changedEntries.conditionCancellationList.map { entry -> entry.toChangeHistory() },
-            registeredDomicileHistoryRecords = changedEntries.newRegisteredDomicileList.map { entry -> entry.toChangeHistory() }
+        return hashMapOf(
+                "card_type" to "driver_license",
+                "name" to entries.name.toJSON(),
+                "kana" to entries.kana,
+                "alias_name" to entries.aliasName.toJSON(),
+                "call_name" to entries.callName,
+                "birth_date" to entries.birthDate?.toISOString(),
+                "address" to entries.addr.toJSON(),
+                "issue_date" to commonData.issueDate.toISOString(),
+                "ref_number" to entries.refNumber,
+                "color_class" to entries.colorClass,
+                "expire_date" to commonData.expireDate.toISOString(),
+                "license_number" to entries.licenseNumber,
+                "psc_name" to entries.pscName,
+                "registered_domicile" to registeredDomicile.registeredDomicile.toJSON(),
+                "photo" to photoSrc,
+                "signature_issuer" to signature.issuer,
+                "signature_subject" to signature.subject,
+                "signature_ski" to Hex.encode(signature.subjectKeyIdentifier, ":"),
+                "verified" to verifyStatus.isValid,
+                "categories" to entries.categories.map { cat ->
+                    hashMapOf(
+                            "tag" to cat.tag,
+                            "name" to cat.name,
+                            "date" to cat.date.toISOString(),
+                            "is_licensed" to cat.isLicensed
+                    )
+                },
+                "name_history_records" to changedEntries.newNameList.map { entry -> entry.toHashMap() },
+                "address_history_records" to changedEntries.newAddrList.map { entry -> entry.toHashMap() },
+                "condition_history_records" to changedEntries.newConditionList.map { entry -> entry.toHashMap() },
+                "condition_cancellation_history_records" to changedEntries.conditionCancellationList.map { entry -> entry.toHashMap() },
+                "registered_domicile_history_records" to changedEntries.newRegisteredDomicileList.map { entry -> entry.toHashMap() }
         )
     }
 }
 
 class LibjeidMyNumberCardParser(
         private val pin: String,
-): FlutterLibjeidCardParser<MyNumberCardData>() {
+) : FlutterLibjeidCardParser() {
     private fun authenticate(textAp: INTextAP, visualAp: INVisualAP) {
         textAp.verifyPin(pin)
         visualAp.verifyPin(pin)
     }
 
-    override fun read(tag: Tag): MyNumberCardData {
+    override fun read(tag: Tag): HashMap<String, Any?> {
         val reader = JeidReader(tag)
         val type = reader.detectCardType()
 
@@ -147,31 +148,32 @@ class LibjeidMyNumberCardParser(
         val myNumberImageSrc = visualFiles.myNumber.myNumber.toBase64PngImage()
         val verified = visualFiles.validate().isValid
 
-        return MyNumberCardData(
-            myNumber = myNumberData.myNumber,
-            name = attributes.name,
-            address = attributes.addr,
-            birthDate = attributes.birth,
-            sex = attributes.sex,
-            expireDate = expire,
-            photo = photoSrc,
-            nameImage = nameImageSrc,
-            addressImage = addressImageSrc,
-            myNumberImage = myNumberImageSrc,
-            verified = verified
+        return hashMapOf(
+                "card_type" to "my_number",
+                "my_number" to myNumberData.myNumber,
+                "name" to attributes.name,
+                "address" to attributes.addr,
+                "birth_date" to attributes.birth,
+                "sex" to attributes.sex,
+                "expire_date" to expire,
+                "photo" to photoSrc,
+                "nameImage" to nameImageSrc,
+                "addressImage" to addressImageSrc,
+                "myNumberImage" to myNumberImageSrc,
+                "verified" to verified
         )
     }
 }
 
 class LibjeidResidentCardParser(
         private val cardNumber: String,
-): FlutterLibjeidCardParser<ResidentCardData>() {
+) : FlutterLibjeidCardParser() {
     private fun authenticate(ap: ResidenceCardAP) {
         val cardKey = RCKey(cardNumber)
         ap.startAC(cardKey)
     }
 
-    override fun read(tag: Tag): ResidentCardData {
+    override fun read(tag: Tag): HashMap<String, Any?> {
         val reader = JeidReader(tag)
         val type = reader.detectCardType()
 
@@ -203,16 +205,17 @@ class LibjeidResidentCardParser(
             comprehensivePermission = files.comprehensivePermission.permission
         }
 
-        return ResidentCardData(
-            cardType = cardType.type,
-            photo = photoSrc,
-            address = address.address,
-            addressCode = address.code,
-            addressUpdatedAt = address.date,
-            cardFrontPhoto = cardFrontPhotoSrc,
-            updateStatus = updateStatus,
-            individualPermission = individualPermission,
-            comprehensivePermission = comprehensivePermission
+        return hashMapOf(
+                "card_type" to "resident_card",
+                "type" to cardType.type,
+                "photo" to photoSrc,
+                "address" to address.address,
+                "address_code" to address.code,
+                "address_updated_at" to address.date,
+                "card_front_photo" to cardFrontPhotoSrc,
+                "update_status" to updateStatus,
+                "individual_permission" to individualPermission,
+                "comprehensive_permission" to comprehensivePermission
         )
     }
 }
@@ -221,13 +224,13 @@ class LibjeidPassportCardParser(
         private val cardNumber: String,
         private val birthDate: String,
         private val expiredDate: String,
-): FlutterLibjeidCardParser<PassportCardData>() {
+) : FlutterLibjeidCardParser() {
     private fun authenticate(ap: PassportAP) {
         val epKey = EPMRZ(cardNumber, birthDate, expiredDate)
         ap.startBAC(epKey)
     }
 
-    override fun read(tag: Tag): PassportCardData {
+    override fun read(tag: Tag): HashMap<String, Any?> {
         val reader = JeidReader(tag)
         val type = reader.detectCardType()
 
@@ -250,31 +253,32 @@ class LibjeidPassportCardParser(
         val passiveAuthenticationResult = files.validate().isValid
         val activeAuthenticationResult = ap.activeAuthentication(files)
 
-        return PassportCardData(
-            fid = commonData.fid,
-            sfid = commonData.shortFID.toUInt(),
-            ldsVersion = commonData.ldsVersion,
-            unicodeVersion = commonData.unicodeVersion,
-            tags = commonData.tagList.map { t -> t.toUInt() }.toTypedArray(),
-            documentCode = dataGroup1Mrz.documentCode,
-            issuingCountry = dataGroup1Mrz.issuingCountry,
-            name = dataGroup1Mrz.name,
-            surname = dataGroup1Mrz.surname,
-            givenName = dataGroup1Mrz.givenName,
-            passportNumber = dataGroup1Mrz.passportNumber,
-            passportNumberCheckDigit = dataGroup1Mrz.passportNumberCheckDigit,
-            nationality = dataGroup1Mrz.nationality,
-            birthDate = dataGroup1Mrz.birthDate,
-            birthDateCheckDigit = dataGroup1Mrz.birthDateCheckDigit,
-            sex = dataGroup1Mrz.sex,
-            expirationDate = dataGroup1Mrz.expirationDate,
-            expirationDateCheckDigit = dataGroup1Mrz.expirationDateCheckDigit,
-            optionaData = dataGroup1Mrz.optionalData,
-            optionalDataCheckDigit = dataGroup1Mrz.optionalDataCheckDigit,
-            compositeCheckDigit = dataGroup1Mrz.compositeCheckDigit,
-            photo = photoSrc,
-            passiveAuthenticationResult = passiveAuthenticationResult,
-            activeAuthenticationResult = activeAuthenticationResult
+        return hashMapOf(
+                "card_type" to "passport",
+                "fid" to commonData.fid,
+                "sfid" to commonData.shortFID,
+                "lds_version" to commonData.ldsVersion,
+                "unicode_version" to commonData.unicodeVersion,
+                "tags" to commonData.tagList,
+                "document_code" to dataGroup1Mrz.documentCode,
+                "issuing_country" to dataGroup1Mrz.issuingCountry,
+                "name" to dataGroup1Mrz.name,
+                "surname" to dataGroup1Mrz.surname,
+                "given_name" to dataGroup1Mrz.givenName,
+                "passport_number" to dataGroup1Mrz.passportNumber,
+                "passport_number_check_digit" to dataGroup1Mrz.passportNumberCheckDigit,
+                "nationality" to dataGroup1Mrz.nationality,
+                "birth_date" to dataGroup1Mrz.birthDate,
+                "birth_date_check_digit" to dataGroup1Mrz.birthDateCheckDigit,
+                "sex" to dataGroup1Mrz.sex,
+                "expiration_date" to dataGroup1Mrz.expirationDate,
+                "expiration_date_check_digit" to dataGroup1Mrz.expirationDateCheckDigit,
+                "optiona_data" to dataGroup1Mrz.optionalData,
+                "optional_data_check_digit" to dataGroup1Mrz.optionalDataCheckDigit,
+                "composite_check_digit" to dataGroup1Mrz.compositeCheckDigit,
+                "photo" to photoSrc,
+                "passive_authentication_result" to passiveAuthenticationResult,
+                "active_authentication_result" to activeAuthenticationResult
         )
     }
 }
@@ -302,10 +306,10 @@ fun DLDate.toISOString(): String {
     return toDate().toISOString()
 }
 
-fun DriverLicenseChangedEntry.toChangeHistory(): DriverLicenseCardData.ChangeHistory {
-    return DriverLicenseCardData.ChangeHistory(
-        date = date.toISOString(),
-        value = value.toString(),
-        psc = psc
+fun DriverLicenseChangedEntry.toHashMap(): HashMap<String, Any?> {
+    return hashMapOf(
+            "date" to date.toISOString(),
+            "value" to value.toString(),
+            "psc" to psc
     )
 }

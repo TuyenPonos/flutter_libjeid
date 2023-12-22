@@ -1,6 +1,10 @@
 import 'src/events.dart';
 import 'flutter_libjeid_platform_interface.dart';
 
+export 'src/events.dart';
+export 'src/models.dart';
+export 'src/errors.dart';
+
 class FlutterLibjeid {
   /// Check whether the NFC reader is available on the device
   Future<bool> isAvailable() {

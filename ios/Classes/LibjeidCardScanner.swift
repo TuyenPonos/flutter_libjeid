@@ -15,7 +15,7 @@ protocol LibjeidCardScannerDelegate {
     
     func libjeidCardScanner(_ scanner: LibjeidCardScanner, didFailWithError error: Error)
     
-    func libjeidCardScanner(_ scanner: LibjeidCardScanner, didSuccessWithData data: CardData)
+    func libjeidCardScanner(_ scanner: LibjeidCardScanner, didSuccessWithData data: Dictionary<String, Any?>)
     
     func libjeidCardScannerDidStopScanning(_ scanner: LibjeidCardScanner)
 }
@@ -24,8 +24,6 @@ protocol LibjeidCardScannerDelegate {
 
 @available(iOS 13.0, *)
 class LibjeidCardScanner: NSObject {
-    typealias ScanCompletionHandler = (_ result: (any CardData)?, _ error: Error?) -> Void
-    
     static var isAvailable: Bool { NFCReaderSession.readingAvailable }
     
     var delegate: LibjeidCardScannerDelegate?

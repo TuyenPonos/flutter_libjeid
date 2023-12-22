@@ -4,7 +4,7 @@ import io.flutter.plugin.common.MethodCall
 
 abstract class FlutterLibjeidCardParserFactory {
     companion object {
-        fun createParserFromFlutterMethod(call: MethodCall): FlutterLibjeidCardParser<out CardData>? {
+        fun createParserFromFlutterMethod(call: MethodCall): FlutterLibjeidCardParser? {
             when (call.method) {
                 "scanPassportCard" -> {
                     val cardNumber = call.argument<String>("card_number")

@@ -98,10 +98,10 @@ extension FlutterLibjeidPlugin: LibjeidCardScannerDelegate {
     }
 
     func libjeidCardScanner(_ scanner: LibjeidCardScanner, didFailWithError error: Error) {
-        eventStream.emit(event: .failed(error: FlutterLibjeidError.from(error)))
+        eventStream.emit(event: .failed(error: FlutterLibjeidError.from(error).toDictionary()))
     }
     
-    func libjeidCardScanner(_ scanner: LibjeidCardScanner, didSuccessWithData data: CardData) {
+    func libjeidCardScanner(_ scanner: LibjeidCardScanner, didSuccessWithData data: Dictionary<String, Any?>) {
         eventStream.emit(event: .success(data: data))
     }
     

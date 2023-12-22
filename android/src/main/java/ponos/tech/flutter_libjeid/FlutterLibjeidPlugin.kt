@@ -77,7 +77,7 @@ class FlutterLibjeidPlugin : FlutterPlugin, MethodCallHandler, ActivityAware, Fl
             }
 
             else -> {
-                if (cardScanner == null || !cardScanner!!.isAvailable()) {
+                if (cardScanner == null || cardScanner?.isAvailable() == false) {
                     result.exception(NfcNotAvailableException())
                     return
                 }
@@ -111,10 +111,10 @@ class FlutterLibjeidPlugin : FlutterPlugin, MethodCallHandler, ActivityAware, Fl
     }
 
     override fun onScanError(error: Exception) {
-        streamHandler.emit(FlutterLibjeidEvent.Failed(FlutterLibjeidException.fromException(error)))
+        streamHandler.emit(FlutterLibjeidEvent.Failed(FlutterLibjeidException.fromException(error).toJSON()))
     }
 
-    override fun onScanSuccess(data: CardData) {
+    override fun onScanSuccess(data: HashMap<String, Any?>) {
         streamHandler.emit(FlutterLibjeidEvent.Success(data))
     }
 

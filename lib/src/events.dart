@@ -1,3 +1,5 @@
+import 'package:flutter_libjeid/src/errors.dart';
+
 import 'models.dart';
 
 enum FlutterLibjeidEventType {
@@ -30,16 +32,22 @@ abstract class FlutterLibjeidEvent {
     switch (type) {
       case FlutterLibjeidEventType.scanning:
         return FlutterLibjeidEventScanning();
+
       case FlutterLibjeidEventType.connecting:
         return FlutterLibjeidEventConnecting();
+
       case FlutterLibjeidEventType.parsing:
         return FlutterLibjeidEventParsing();
+
       case FlutterLibjeidEventType.success:
-        return FlutterLibjeidEventSuccess(map['data']);
+        return FlutterLibjeidEventSuccess(FlutterLibjeidCardData.fromJSON(map['data']));
+
       case FlutterLibjeidEventType.failed:
-        return FlutterLibjeidEventFailed(map['data']);
+        return FlutterLibjeidEventFailed(FlutterLibjeidError.fromJSON(map['data']));
+
       case FlutterLibjeidEventType.cancelled:
         return FlutterLibjeidEventCancelled();
+
       default:
         throw Exception('Invalid event type: ${map['type']}');
     }
@@ -70,9 +78,9 @@ class FlutterLibjeidEventSuccess extends FlutterLibjeidEvent {
 
 /// Event that will be emitted when the device's NFC reader is failed to connect or read the NFC card data
 class FlutterLibjeidEventFailed extends FlutterLibjeidEvent {
-  FlutterLibjeidEventFailed(this.data) : super(FlutterLibjeidEventType.failed);
+  FlutterLibjeidEventFailed(this.error) : super(FlutterLibjeidEventType.failed);
 
-  final Map<String, String> data;
+  final FlutterLibjeidError error;
 }
 
 /// Event that will be emitted when the device's NFC reader is cancelled by calling the "stopScan" method

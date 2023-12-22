@@ -6,18 +6,14 @@ import Flutter
 // MARK: - LibjeidCardParser
 
 @available(iOS 13.0, *)
-protocol LibjeidCardParser {
-    associatedtype T: CardData
-    
-    func read(tag: NFCTag) throws -> T
+protocol LibjeidCardParser {    
+    func read(tag: NFCTag) throws -> Dictionary<String, Any?>
 }
 
 // MARK: - DriverLicenseCardReader
 
 @available(iOS 13.0, *)
 class LibjeidDriverLicenseCardParser: LibjeidCardParser {
-    typealias T = DriverLicenseCardData
-
     let pin1: String?
     let pin2: String?
     
@@ -46,7 +42,7 @@ class LibjeidDriverLicenseCardParser: LibjeidCardParser {
         try ap.verifyPin2(pin2)
     }
     
-    func read(tag: NFCTag) throws -> DriverLicenseCardData {
+    func read(tag: NFCTag) throws -> Dictionary<String, Any?> {
         let reader = try JeidReader(tag)
         let type = try reader.detectCardType()
         
@@ -60,49 +56,50 @@ class LibjeidDriverLicenseCardParser: LibjeidCardParser {
         
         var files = try ap.readFiles()
 
-        let commonData = try files.getCommonData()
-        let entries = try files.getEntries()
-        let changedEntries = try files.getChangedEntries()
-        let photo = try files.getPhoto()
-        let registeredDomicile = try files.getRegisteredDomicile()
-        let signature = try files.getSignature()
+        let commonData = try? files.getCommonData()
+        let entries = try? files.getEntries()
+        let changedEntries = try? files.getChangedEntries()
+        let photo = try? files.getPhoto()
+        let registeredDomicile = try? files.getRegisteredDomicile()
+        let signature = try? files.getSignature()
 
-        let photoSrc = photo.photoData?.toBase64PngImage()
+        let photoSrc = photo?.photoData?.toBase64PngImage()
         let verifyStatus = try? files.validate()
         
-        return DriverLicenseCardData(
-            name: entries.name.toString(),
-            kana: entries.kana,
-            aliasName: entries.aliasName.toString(),
-            callName: entries.callName,
-            birthDate: entries.birthDate?.toISOString(),
-            address: entries.address.toString(),
-            issueDate: commonData.issueDate,
-            refNumber: entries.refNumber,
-            colorClass: entries.colorClass,
-            expireDate: commonData.expireDate,
-            licenseNumber: entries.licenseNumber,
-            pscName: entries.pscName,
-            registeredDomicile: registeredDomicile.registeredDomicile.toString(),
-            photo: photoSrc,
-            signatureIssuer: signature.issuer,
-            signatureSubject: signature.subject,
-            signatureSKI: signature.subjectKeyIdentifier?.map { String(format: "%.2hhx", $0) }.joined(separator: ":"),
-            verified: verifyStatus?.isValid,
-            categories: (entries.categories ?? []).map { cat in
-                DriverLicenseCardData.Category(
-                    tag: cat.tag,
-                    name: cat.name,
-                    date: cat.date.toISOString(),
-                    isLicensed: cat.isLicensed
-                )
+        return [
+            "card_type": "driver_license",
+            "name": try? entries?.name.toJSON(),
+            "kana": entries?.kana,
+            "alias_name": try? entries?.aliasName.toJSON(),
+            "call_name": entries?.callName,
+            "birth_date": entries?.birthDate?.toISOString(),
+            "address": try? entries?.address.toJSON(),
+            "issue_date": commonData?.issueDate,
+            "ref_number": entries?.refNumber,
+            "color_class": entries?.colorClass,
+            "expire_date": commonData?.expireDate,
+            "license_number": entries?.licenseNumber,
+            "psc_name": entries?.pscName,
+            "registered_domicile": try? registeredDomicile?.registeredDomicile.toJSON(),
+            "photo": photoSrc,
+            "signature_issuer": signature?.issuer,
+            "signature_subject": signature?.subject,
+            "signature_ski": signature?.subjectKeyIdentifier?.map { String(format: "%.2hhx", $0) }.joined(separator: ":"),
+            "verified": verifyStatus?.isValid,
+            "categories": (entries?.categories ?? []).map { cat in
+                [
+                    "tag": cat.tag,
+                    "name": cat.name,
+                    "date": cat.date.toISOString(),
+                    "is_licensed": cat.isLicensed
+                ]
             },
-            nameHistoryRecords: changedEntries.newNameList.map { $0.toChangeHistory() },
-            addressHistoryRecords: changedEntries.newAddressList.map { $0.toChangeHistory() },
-            conditionHistoryRecords: changedEntries.newConditionList.map { $0.toChangeHistory() },
-            conditionCancellationHistoryRecords: changedEntries.conditionCancellationList.map { $0.toChangeHistory() },
-            registeredDomicileHistoryRecords: changedEntries.newRegisteredDomicileList.map { $0.toChangeHistory() }
-        )
+            "name_history_records": changedEntries?.newNameList.map { $0.toDictionary() },
+            "address_history_records": changedEntries?.newAddressList.map { $0.toDictionary() },
+            "condition_history_records": changedEntries?.newConditionList.map { $0.toDictionary() },
+            "condition_cancellation_history_records": changedEntries?.conditionCancellationList.map { $0.toDictionary() },
+            "registered_domicile_history_records": changedEntries?.newRegisteredDomicileList.map { $0.toDictionary() }
+        ]
     }
 }
 
@@ -110,8 +107,6 @@ class LibjeidDriverLicenseCardParser: LibjeidCardParser {
 
 @available(iOS 13.0, *)
 class LibjeidMyNumberCardParser: LibjeidCardParser {
-    typealias T = MyNumberCardData
-    
     let pin: String
     
     init(pin: String) {
@@ -123,7 +118,7 @@ class LibjeidMyNumberCardParser: LibjeidCardParser {
         try visualAp.verifyPin(pin)
     }
     
-    func read(tag: NFCTag) throws -> MyNumberCardData {
+    func read(tag: NFCTag) throws -> Dictionary<String, Any?> {
         let reader = try JeidReader(tag)
         let type = try reader.detectCardType()
         
@@ -138,32 +133,33 @@ class LibjeidMyNumberCardParser: LibjeidCardParser {
         
         let files = try textAp.readFiles()
 
-        let myNumberData = try files.getMyNumber()
-        let attributes = try files.getAttributes()
+        let myNumberData = try? files.getMyNumber()
+        let attributes = try? files.getAttributes()
         
-        let visualFiles = try visualAp.readFiles()
-        let visualEntries = try visualFiles.getEntries()
+        let visualFiles = try? visualAp.readFiles()
+        let visualEntries = try? visualFiles?.getEntries()
         
-        let expire = visualEntries.expireDate
-        let photoSrc = visualEntries.photoData?.toBase64PngImage()
-        let nameImageSrc = visualEntries.name?.toBase64PngImage()
-        let addressImageSrc = visualEntries.address?.toBase64PngImage()
-        let myNumberImageSrc = try? visualFiles.getMyNumber().myNumber?.toBase64PngImage()
-        let verified = try? visualFiles.validate().isValid
-
-        return MyNumberCardData(
-            myNumber: myNumberData.myNumber,
-            name: attributes.name,
-            address: attributes.address,
-            birthDate: attributes.birthDate,
-            sex: attributes.sex,
-            expireDate: expire,
-            photo: photoSrc,
-            nameImage: nameImageSrc,
-            addressImage: addressImageSrc,
-            myNumberImage: myNumberImageSrc,
-            verified: verified
-        )
+        let expire = visualEntries?.expireDate
+        let photoSrc = visualEntries?.photoData?.toBase64PngImage()
+        let nameImageSrc = visualEntries?.name?.toBase64PngImage()
+        let addressImageSrc = visualEntries?.address?.toBase64PngImage()
+        let myNumberImageSrc = try? visualFiles?.getMyNumber().myNumber?.toBase64PngImage()
+        let verified = try? visualFiles?.validate().isValid
+        
+        return [
+            "card_type": "my_number",
+            "my_number": myNumberData?.myNumber,
+            "name": attributes?.name,
+            "address": attributes?.address,
+            "birth_date": attributes?.birthDate,
+            "sex": attributes?.sex,
+            "expire_date": expire,
+            "photo": photoSrc,
+            "nameImage": nameImageSrc,
+            "addressImage": addressImageSrc,
+            "myNumberImage": myNumberImageSrc,
+            "verified": verified
+        ]
     }
 }
 
@@ -171,8 +167,6 @@ class LibjeidMyNumberCardParser: LibjeidCardParser {
 
 @available(iOS 13.0, *)
 class LibjeidResidentCardParser: LibjeidCardParser {
-    typealias T = ResidentCardData
-    
     let cardNumber: String
     
     init(cardNumber: String) {
@@ -184,7 +178,7 @@ class LibjeidResidentCardParser: LibjeidCardParser {
         try ap.startAC(cardKey)
     }
     
-    func read(tag: NFCTag) throws -> ResidentCardData {
+    func read(tag: NFCTag) throws -> Dictionary<String, Any?> {
         let reader = try JeidReader(tag)
         let type = try reader.detectCardType()
         
@@ -198,35 +192,36 @@ class LibjeidResidentCardParser: LibjeidCardParser {
         
         let files = try ap.readFiles()
         
-        let cardType = try files.getCardType()
-        let address = try files.getAddress()
-        let photo = try files.getPhoto()
-        let cardEntries = try files.getCardEntries()
+        let cardType = try? files.getCardType()
+        let address = try? files.getAddress()
+        let photo = try? files.getPhoto()
+        let cardEntries = try? files.getCardEntries()
         
-        let photoSrc = photo.photoData?.toBase64PngImage()
-        let cardFrontPhotoSrc = try cardEntries.pngData().toBase64PngImage()
+        let photoSrc = photo?.photoData?.toBase64PngImage()
+        let cardFrontPhotoSrc = try? cardEntries?.pngData().toBase64PngImage()
         var updateStatus: String?
         var individualPermission: String?
         var comprehensivePermission: String?
 
         // Resident card?
-        if cardType.type == "1" {
+        if cardType?.type == "1" {
             updateStatus = try files.getUpdateStatus().status
             individualPermission = try files.getIndividualPermission().permission
             comprehensivePermission = try files.getComprehensivePermission().permission
         }
-
-        return ResidentCardData(
-            cardType: cardType.type,
-            photo: photoSrc,
-            address: address.address,
-            addressCode: address.code,
-            addressUpdatedAt: address.date,
-            cardFrontPhoto: cardFrontPhotoSrc,
-            updateStatus: updateStatus,
-            individualPermission: individualPermission,
-            comprehensivePermission: comprehensivePermission
-        )
+        
+        return [
+            "card_type": "resident_card",
+            "type": cardType?.type,
+            "photo": photoSrc,
+            "address": address?.address,
+            "address_code": address?.code,
+            "address_updated_at": address?.date,
+            "card_front_photo": cardFrontPhotoSrc,
+            "update_status": updateStatus,
+            "individual_permission": individualPermission,
+            "comprehensive_permission": comprehensivePermission
+        ]
     }
 }
 
@@ -234,8 +229,6 @@ class LibjeidResidentCardParser: LibjeidCardParser {
 
 @available(iOS 13.0, *)
 class LibjeidPassportCardParser: LibjeidCardParser {
-    typealias T = PassportCardData
-    
     let cardNumber: String
     let birthDate: String
     let expiredDate: String
@@ -252,7 +245,7 @@ class LibjeidPassportCardParser: LibjeidCardParser {
         try ap.startBAC(epKey)
     }
     
-    func read(tag: NFCTag) throws -> PassportCardData {
+    func read(tag: NFCTag) throws -> Dictionary<String, Any?> {
         let reader = try JeidReader(tag)
         let type = try reader.detectCardType()
         
@@ -265,44 +258,45 @@ class LibjeidPassportCardParser: LibjeidCardParser {
         try self.authenticate(ap: ap)
         
         let files = try ap.readFiles()
-        let commonData = try files.getCommonData()
-        let dataGroup1 = try files.getDataGroup1()
-        let dataGroup2 = try files.getDataGroup2()
+        let commonData = try? files.getCommonData()
+        let dataGroup1 = try? files.getDataGroup1()
+        let dataGroup2 = try? files.getDataGroup2()
         
-        let dataGroup1Mrz = dataGroup1.mrz != nil
-            ? try? EPMRZ(dataGroup1.mrz!)
+        let dataGroup1Mrz = dataGroup1?.mrz != nil
+            ? try? EPMRZ(dataGroup1!.mrz!)
             : nil
         
-        let photo = dataGroup2.faceJpeg?.toBase64PngImage()
+        let photoSrc = dataGroup2?.faceJpeg?.toBase64PngImage()
         let passiveAuthenticationResult = try? files.validate().isValid
         let activeAuthenticationResult = try? ap.activeAuthentication(files)
         
-        return PassportCardData(
-            fid: commonData.fid,
-            sfid: commonData.shortFID,
-            ldsVersion: commonData.ldsVersion,
-            unicodeVersion: commonData.unicodeVersion,
-            tags: commonData.tagList,
-            documentCode: dataGroup1Mrz?.documentCode,
-            issuingCountry: dataGroup1Mrz?.issuingCountry,
-            name: dataGroup1Mrz?.name,
-            surname: dataGroup1Mrz?.surname,
-            givenName: dataGroup1Mrz?.givenName,
-            passportNumber: dataGroup1Mrz?.passportNumber,
-            passportNumberCheckDigit: dataGroup1Mrz?.passportNumberCheckDigit,
-            nationality: dataGroup1Mrz?.nationality,
-            birthDate: dataGroup1Mrz?.birthDate,
-            birthDateCheckDigit: dataGroup1Mrz?.birthDateCheckDigit,
-            sex: dataGroup1Mrz?.sex,
-            expirationDate: dataGroup1Mrz?.expirationDate,
-            expirationDateCheckDigit: dataGroup1Mrz?.expirationDateCheckDigit,
-            optionaData: dataGroup1Mrz?.optionalData,
-            optionalDataCheckDigit: dataGroup1Mrz?.optionalDataCheckDigit,
-            compositeCheckDigit: dataGroup1Mrz?.compositeCheckDigit,
-            photo: photo,
-            passiveAuthenticationResult: passiveAuthenticationResult,
-            activeAuthenticationResult: activeAuthenticationResult
-        )
+        return [
+            "card_type": "passport",
+            "fid": commonData?.fid,
+            "sfid": commonData?.shortFID,
+            "lds_version": commonData?.ldsVersion,
+            "unicode_version": commonData?.unicodeVersion,
+            "tags": commonData?.tagList,
+            "document_code": dataGroup1Mrz?.documentCode,
+            "issuing_country": dataGroup1Mrz?.issuingCountry,
+            "name": dataGroup1Mrz?.name,
+            "surname": dataGroup1Mrz?.surname,
+            "given_name": dataGroup1Mrz?.givenName,
+            "passport_number": dataGroup1Mrz?.passportNumber,
+            "passport_number_check_digit": dataGroup1Mrz?.passportNumberCheckDigit,
+            "nationality": dataGroup1Mrz?.nationality,
+            "birth_date": dataGroup1Mrz?.birthDate,
+            "birth_date_check_digit": dataGroup1Mrz?.birthDateCheckDigit,
+            "sex": dataGroup1Mrz?.sex,
+            "expiration_date": dataGroup1Mrz?.expirationDate,
+            "expiration_date_check_digit": dataGroup1Mrz?.expirationDateCheckDigit,
+            "optiona_data": dataGroup1Mrz?.optionalData,
+            "optional_data_check_digit": dataGroup1Mrz?.optionalDataCheckDigit,
+            "composite_check_digit": dataGroup1Mrz?.compositeCheckDigit,
+            "photo": photoSrc,
+            "passive_authentication_result": passiveAuthenticationResult,
+            "active_authentication_result": activeAuthenticationResult
+        ]
     }
 }
 
@@ -320,12 +314,12 @@ extension DLDate {
 }
 
 extension DLChangedEntry {
-    func toChangeHistory() -> DriverLicenseCardData.ChangeHistory {
-        return DriverLicenseCardData.ChangeHistory(
-            date: self.date.toISOString(),
-            value: self.value.toString(),
-            psc: self.psc
-        )
+    func toDictionary() -> Dictionary<String, Any?> {
+        return [
+            "date": self.date.toISOString(),
+            "value": self.value.toString(),
+            "psc": self.psc
+        ]
     }
 }
 

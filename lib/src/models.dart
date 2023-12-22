@@ -1,7 +1,26 @@
-import 'dart:ffi';
-
 abstract class FlutterLibjeidCardData {
   const FlutterLibjeidCardData();
+
+  Map<String, dynamic> toJSON();
+
+  factory FlutterLibjeidCardData.fromJSON(Map<String, dynamic> json) {
+    switch (json['card_type']) {
+      case 'resident_card':
+        return ResidentCardData.fromJSON(json);
+
+      case 'my_number':
+        return MyNumberCardData.fromJSON(json);
+
+      case 'driver_license':
+        return DriverLicenseCardData.fromJSON(json);
+
+      case 'passport':
+        return PassportCardData.fromJSON(json);
+
+      default:
+        throw Exception('Invalid card type: ${json['type']}');
+    }
+  }
 }
 
 class DriverLicenseCardData extends FlutterLibjeidCardData {
@@ -56,6 +75,82 @@ class DriverLicenseCardData extends FlutterLibjeidCardData {
     required this.conditionCancellationHistoryRecords,
     required this.registeredDomicileHistoryRecords,
   });
+
+  factory DriverLicenseCardData.fromJSON(Map<String, dynamic> json) {
+    return DriverLicenseCardData(
+      name: json['name'],
+      kana: json['kana'],
+      aliasName: json['alias_name'],
+      callName: json['call_name'],
+      birthDate: json['birth_date'],
+      address: json['address'],
+      issueDate: json['issue_date'],
+      refNumber: json['ref_number'],
+      colorClass: json['color_class'],
+      expireDate: json['expire_date'],
+      licenseNumber: json['license_number'],
+      pscName: json['psc_name'],
+      registeredDomicile: json['registered_domicile'],
+      photo: json['photo'],
+      signatureIssuer: json['signature_issuer'],
+      signatureSubject: json['signature_subject'],
+      signatureSKI: json['signature_ski'],
+      verified: json['verified'],
+      categories: (json['categories'] as List<Map<String, dynamic>>)
+          .map((category) => DriverLicenseCardDataCategory.fromJSON(category))
+          .toList(),
+      nameHistoryRecords: (json['name_history_records'] as List<Map<String, dynamic>>)
+          .map((record) => ChangeHistory.fromJSON(record))
+          .toList(),
+      addressHistoryRecords: (json['address_history_records'] as List<Map<String, dynamic>>)
+          .map((record) => ChangeHistory.fromJSON(record))
+          .toList(),
+      conditionHistoryRecords: (json['condition_history_records'] as List<Map<String, dynamic>>)
+          .map((record) => ChangeHistory.fromJSON(record))
+          .toList(),
+      conditionCancellationHistoryRecords:
+          (json['condition_cancellation_history_records'] as List<Map<String, dynamic>>)
+              .map((record) => ChangeHistory.fromJSON(record))
+              .toList(),
+      registeredDomicileHistoryRecords:
+          (json['registered_domicile_history_records'] as List<Map<String, dynamic>>)
+              .map((record) => ChangeHistory.fromJSON(record))
+              .toList(),
+    );
+  }
+
+  @override
+  Map<String, dynamic> toJSON() {
+    return {
+      'name': name,
+      'kana': kana,
+      'alias_name': aliasName,
+      'call_name': callName,
+      'birth_date': birthDate,
+      'address': address,
+      'issue_date': issueDate,
+      'ref_number': refNumber,
+      'color_class': colorClass,
+      'expire_date': expireDate,
+      'license_number': licenseNumber,
+      'psc_name': pscName,
+      'registered_domicile': registeredDomicile,
+      'photo': photo,
+      'signature_issuer': signatureIssuer,
+      'signature_subject': signatureSubject,
+      'signature_ski': signatureSKI,
+      'verified': verified,
+      'categories': categories?.map((category) => category.toJSON()).toList(),
+      'name_history_records': nameHistoryRecords.map((record) => record.toJSON()).toList(),
+      'address_history_records': addressHistoryRecords.map((record) => record.toJSON()).toList(),
+      'condition_history_records':
+          conditionHistoryRecords.map((record) => record.toJSON()).toList(),
+      'condition_cancellation_history_records':
+          conditionCancellationHistoryRecords.map((record) => record.toJSON()).toList(),
+      'registered_domicile_history_records':
+          registeredDomicileHistoryRecords.map((record) => record.toJSON()).toList(),
+    };
+  }
 }
 
 class DriverLicenseCardDataCategory {
@@ -70,6 +165,24 @@ class DriverLicenseCardDataCategory {
     required this.date,
     required this.isLicensed,
   });
+
+  factory DriverLicenseCardDataCategory.fromJSON(Map<String, dynamic> json) {
+    return DriverLicenseCardDataCategory(
+      tag: json['tag'],
+      name: json['name'],
+      date: json['date'],
+      isLicensed: json['is_licensed'],
+    );
+  }
+
+  Map<String, dynamic> toJSON() {
+    return {
+      'tag': tag,
+      'name': name,
+      'date': date,
+      'is_licensed': isLicensed,
+    };
+  }
 }
 
 class ChangeHistory {
@@ -82,6 +195,22 @@ class ChangeHistory {
     required this.value,
     required this.psc,
   });
+
+  factory ChangeHistory.fromJSON(Map<String, dynamic> json) {
+    return ChangeHistory(
+      date: json['date'],
+      value: json['value'],
+      psc: json['psc'],
+    );
+  }
+
+  Map<String, dynamic> toJSON() {
+    return {
+      'date': date,
+      'value': value,
+      'psc': psc,
+    };
+  }
 }
 
 class MyNumberCardData extends FlutterLibjeidCardData {
@@ -110,6 +239,39 @@ class MyNumberCardData extends FlutterLibjeidCardData {
     required this.myNumberImage,
     required this.verified,
   });
+
+  factory MyNumberCardData.fromJSON(Map<String, dynamic> json) {
+    return MyNumberCardData(
+      myNumber: json['my_number'],
+      name: json['name'],
+      address: json['address'],
+      birthDate: json['birth_date'],
+      sex: json['sex'],
+      expireDate: json['expire_date'],
+      photo: json['photo'],
+      nameImage: json['name_image'],
+      addressImage: json['address_image'],
+      myNumberImage: json['my_number_image'],
+      verified: json['verified'],
+    );
+  }
+
+  @override
+  Map<String, dynamic> toJSON() {
+    return {
+      'my_number': myNumber,
+      'name': name,
+      'address': address,
+      'birth_date': birthDate,
+      'sex': sex,
+      'expire_date': expireDate,
+      'photo': photo,
+      'name_image': nameImage,
+      'address_image': addressImage,
+      'my_number_image': myNumberImage,
+      'verified': verified,
+    };
+  }
 }
 
 class ResidentCardData extends FlutterLibjeidCardData {
@@ -134,14 +296,43 @@ class ResidentCardData extends FlutterLibjeidCardData {
     required this.individualPermission,
     required this.comprehensivePermission,
   });
+
+  factory ResidentCardData.fromJSON(Map<String, dynamic> json) {
+    return ResidentCardData(
+      cardType: json['card_type'],
+      photo: json['photo'],
+      address: json['address'],
+      addressCode: json['address_code'],
+      addressUpdatedAt: json['address_updated_at'],
+      cardFrontPhoto: json['card_front_photo'],
+      updateStatus: json['update_status'],
+      individualPermission: json['individual_permission'],
+      comprehensivePermission: json['comprehensive_permission'],
+    );
+  }
+
+  @override
+  Map<String, dynamic> toJSON() {
+    return {
+      'card_type': cardType,
+      'photo': photo,
+      'address': address,
+      'address_code': addressCode,
+      'address_updated_at': addressUpdatedAt,
+      'card_front_photo': cardFrontPhoto,
+      'update_status': updateStatus,
+      'individual_permission': individualPermission,
+      'comprehensive_permission': comprehensivePermission,
+    };
+  }
 }
 
 class PassportCardData extends FlutterLibjeidCardData {
   final String fid;
-  final Uint8 sfid;
+  final int sfid;
   final String? ldsVersion;
   final String? unicodeVersion;
-  final List<Uint8> tags;
+  final List<int> tags;
   final String? documentCode;
   final String? issuingCountry;
   final String? name;
@@ -188,4 +379,63 @@ class PassportCardData extends FlutterLibjeidCardData {
     required this.passiveAuthenticationResult,
     required this.activeAuthenticationResult,
   });
+
+  factory PassportCardData.fromJSON(Map<String, dynamic> json) {
+    return PassportCardData(
+      fid: json['fid'],
+      sfid: json['sfid'],
+      ldsVersion: json['lds_version'],
+      unicodeVersion: json['unicode_version'],
+      tags: json['tags'],
+      documentCode: json['document_code'],
+      issuingCountry: json['issuing_country'],
+      name: json['name'],
+      surname: json['surname'],
+      givenName: json['given_name'],
+      passportNumber: json['passport_number'],
+      passportNumberCheckDigit: json['passport_number_check_digit'],
+      nationality: json['nationality'],
+      birthDate: json['birth_date'],
+      birthDateCheckDigit: json['birth_date_check_digit'],
+      sex: json['sex'],
+      expirationDate: json['expiration_date'],
+      expirationDateCheckDigit: json['expiration_date_check_digit'],
+      optionaData: json['optiona_data'],
+      optionalDataCheckDigit: json['optional_data_check_digit'],
+      compositeCheckDigit: json['composite_check_digit'],
+      photo: json['photo'],
+      passiveAuthenticationResult: json['passive_authentication_result'],
+      activeAuthenticationResult: json['active_authentication_result'],
+    );
+  }
+
+  @override
+  Map<String, dynamic> toJSON() {
+    return {
+      'fid': fid,
+      'sfid': sfid,
+      'lds_version': ldsVersion,
+      'unicode_version': unicodeVersion,
+      'tags': tags,
+      'document_code': documentCode,
+      'issuing_country': issuingCountry,
+      'name': name,
+      'surname': surname,
+      'given_name': givenName,
+      'passport_number': passportNumber,
+      'passport_number_check_digit': passportNumberCheckDigit,
+      'nationality': nationality,
+      'birth_date': birthDate,
+      'birth_date_check_digit': birthDateCheckDigit,
+      'sex': sex,
+      'expiration_date': expirationDate,
+      'expiration_date_check_digit': expirationDateCheckDigit,
+      'optiona_data': optionaData,
+      'optional_data_check_digit': optionalDataCheckDigit,
+      'composite_check_digit': compositeCheckDigit,
+      'photo': photo,
+      'passive_authentication_result': passiveAuthenticationResult,
+      'active_authentication_result': activeAuthenticationResult,
+    };
+  }
 }

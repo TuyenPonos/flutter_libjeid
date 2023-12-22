@@ -4,12 +4,10 @@ import libjeid
 
 class FlutterLibjeidError: Error & Codable {
     let code: String
-    let message: String
     let details: Dictionary<String, String?>?
 
-    init(code: String, message: String, details: Dictionary<String, String?>? = nil) {
+    init(code: String, details: Dictionary<String, String?>? = nil) {
         self.code = code
-        self.message = message
         self.details = details
     }
     
@@ -18,47 +16,66 @@ class FlutterLibjeidError: Error & Codable {
             return error as! FlutterLibjeidError
         }
         
-        return FlutterLibjeidError(code: error.localizedDescription, message: error.localizedDescription)
+        return FlutterLibjeidError(code: error.localizedDescription)
     }
     
     func toFlutterError() -> FlutterError {
-        return FlutterError(code: code, message: message, details: details)
+        return FlutterError(code: code, message: code, details: details)
+    }
+    
+    func toDictionary() -> Dictionary<String, Any?>? {
+        let encoder = JSONEncoder()
+        encoder.keyEncodingStrategy = .convertToSnakeCase
+        guard let data = try? encoder.encode(self) else { return nil }
+        return (try? JSONSerialization.jsonObject(with: data, options: .allowFragments)).flatMap { $0 as? [String: Any] }
     }
 }
 
 class NfcNotAvailableError: FlutterLibjeidError {
     convenience init() {
-        self.init(code: "NfcNotAvailable", message: "NFC is not available on this device")
+        self.init(code: "NfcNotAvailable")
     }
 }
 
 class NfcTagUnableToConnectError: FlutterLibjeidError {
     convenience init(details: Dictionary<String, String?>? = nil) {
-        self.init(code: "NfcTagUnableToConnect", message: "Cannot connect to NFC tag", details: details)
+        self.init(code: "NfcTagUnableToConnect", details: details)
     }
 }
 
 class NfcCardBlockedError: FlutterLibjeidError {
     convenience init(details: Dictionary<String, String?>? = nil) {
-        self.init(code: "NfcCardBlocked", message: "The card is blocked", details: details)
+        self.init(code: "NfcCardBlocked", details: details)
     }
 }
 
 class NfcCardTypeMismatchError: FlutterLibjeidError {
     convenience init(details: Dictionary<String, String?>? = nil) {
-        self.init(code: "NfcCardTypeMismatch", message: "The card type does not match", details: details)
+        self.init(code: "NfcCardTypeMismatch", details: details)
     }
 }
 
 class InvalidMethodArgumentsError: FlutterLibjeidError {
     convenience init(details: Dictionary<String, String?>? = nil) {
-        self.init(code: "InvalidMethodArguments", message: "Invalid method channel arguments", details: details)
+        self.init(code: "InvalidMethodArguments", details: details)
+    }
+}
+
+class InvalidCardPinError: FlutterLibjeidError {
+    convenience init(counter: Int) {
+        self.init(code: "InvalidPin", details: ["remainingTimes": "\(counter)"])
+    }
+}
+
+class InvalidCardKeyError: FlutterLibjeidError {
+    convenience init(message: String) {
+        self.init(code: "InvalidKey", details: ["message": message])
     }
 }
 
 class UnknownError: FlutterLibjeidError {
     convenience init(details: Dictionary<String, String?>? = nil) {
-        self.init(code: "Unknown", message: "Unknown error", details: details)
+        self.init(code: "Unknown", details: details)
     }
     
     convenience init(code: String? = nil, message: String? = nil) {
@@ -66,38 +83,22 @@ class UnknownError: FlutterLibjeidError {
     }
 }
 
+// MARK: - JeidError.toFlutterLibjeidError
+
 extension JeidError {
     func toFlutterLibjeidError() -> FlutterLibjeidError {
         switch (self) {
-        case .decodeFailed(let message):
-            return FlutterLibjeidError(code: "DecodeFailed", message: message)
-            
-        case .encodeFailed(let message):
-            return FlutterLibjeidError(code: "EncodeFailed", message: message)
-            
-        case .fileNotFound(let message):
-            return FlutterLibjeidError(code: "FileNotFound", message: message)
-            
         case .invalidKey(let message):
             if self.isBlocked == true {
                 return NfcCardBlockedError()
             }
-            return FlutterLibjeidError(code: "InvalidKey", message: message)
+            return InvalidCardKeyError(message: message)
 
         case .invalidPin(let counter):
             if self.isBlocked == true {
                 return NfcCardBlockedError()
             }
-            return FlutterLibjeidError(code: "InvalidPin", message: "Invalid PIN code, remaining time(s): \(counter)", details: ["remainingTimes": "\(counter)"])
-            
-        case .securityStatusNotSatisfied:
-            return FlutterLibjeidError(code: "SecurityStatusNotSatisfied", message: "SecurityStatusNotSatisfied")
-            
-        case .signatureVerificationFailed(let message):
-            return FlutterLibjeidError(code: "SignatureVerificationFailed", message: message)
-            
-        case .transceiveFailed(let message):
-            return FlutterLibjeidError(code: "TransceiveFailed", message: message)
+            return InvalidCardPinError(counter: counter)
             
         default:
             return UnknownError(code: "\(self.errorCode)", message: self.localizedDescription)

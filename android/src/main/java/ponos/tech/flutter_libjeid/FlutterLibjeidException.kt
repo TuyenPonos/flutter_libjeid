@@ -3,13 +3,8 @@ package ponos.tech.flutter_libjeid
 import jp.co.osstech.libjeid.InvalidACKeyException
 import jp.co.osstech.libjeid.InvalidBACKeyException
 import jp.co.osstech.libjeid.InvalidPinException
-import kotlin.Exception
 
-open class FlutterLibjeidException(
-        val code: String,
-        override val message: String,
-        val details: Map<String, String?>? = null
-): Exception() {
+open class FlutterLibjeidException(val code: String, val details: HashMap<String, String?>? = null) : Exception() {
     companion object {
         fun fromException(e: Exception): FlutterLibjeidException {
             if (e is FlutterLibjeidException) {
@@ -21,23 +16,19 @@ open class FlutterLibjeidException(
                     return NfcCardBlockedException()
                 }
 
-                return FlutterLibjeidException(
-                        code = "InvalidPin",
-                        message = "Invalid PIN code, remaining time(s): ${e.counter}",
-                        details = mapOf("remainingTimes" to "${e.counter}")
+                return InvalidCardPinException(
+                        counter = e.counter
                 )
             }
 
             if (e is InvalidBACKeyException) {
-                return FlutterLibjeidException(
-                        code = "InvalidKey",
+                return InvalidCardKeyException(
                         message = e.message ?: "Invalid BAC key"
                 )
             }
 
             if (e is InvalidACKeyException) {
-                return FlutterLibjeidException(
-                        code = "InvalidKey",
+                return InvalidCardKeyException(
                         message = e.message ?: "Invalid AC key"
                 )
             }
@@ -46,60 +37,54 @@ open class FlutterLibjeidException(
         }
     }
 
-    fun toJSON(): Map<String, Any?> {
-        return mapOf(
-            "code" to code,
-            "message" to message,
-            "details" to details
+    fun toJSON(): HashMap<String, Any?> {
+        return hashMapOf(
+                "code" to code,
+                "message" to message,
+                "details" to details
         )
     }
 }
 
-class NfcNotAvailableException: FlutterLibjeidException(
+class NfcNotAvailableException : FlutterLibjeidException(
         code = "NfcNotAvailable",
-        message = "NFC is not available on this device"
 )
 
-class NfcTagUnableToConnectException(
-        details: Map<String, String?>? = null
-): FlutterLibjeidException(
+class NfcTagUnableToConnectException(details: HashMap<String, String?>? = null) : FlutterLibjeidException(
         code = "NfcTagUnableToConnect",
-        message = "Cannot connect to NFC tag",
         details
 )
 
-class NfcCardBlockedException(
-        details: Map<String, String?>? = null
-): FlutterLibjeidException(
+class NfcCardBlockedException(details: HashMap<String, String?>? = null) : FlutterLibjeidException(
         code = "NfcCardBlocked",
-        message = "The card is blocked",
         details
 )
 
-class NfcCardTypeMismatchException(
-        details: Map<String, String?>? = null
-): FlutterLibjeidException(
+class NfcCardTypeMismatchException(details: HashMap<String, String?>? = null) : FlutterLibjeidException(
         code = "NfcCardTypeMismatch",
-        message = "The card type does not match",
         details
 )
 
-class InvalidMethodArgumentsException(
-        details: Map<String, String?>? = null
-): FlutterLibjeidException(
+class InvalidMethodArgumentsException(details: HashMap<String, String?>? = null) : FlutterLibjeidException(
         code = "InvalidMethodArguments",
-        message = "Invalid method channel arguments",
         details
 )
 
-class UnknownException(
-        details: Map<String, String?>? = null
-): FlutterLibjeidException(
+class InvalidCardPinException(counter: Int) : FlutterLibjeidException(
+        code = "InvalidPin",
+        details = hashMapOf("remainingTimes" to "$counter")
+)
+
+class InvalidCardKeyException(message: String) : FlutterLibjeidException(
+        code = "InvalidKey",
+        details = hashMapOf("message" to message)
+)
+
+class UnknownException(details: HashMap<String, String?>? = null) : FlutterLibjeidException(
         code = "Unknown",
-        message = "Unknown error",
         details
 ) {
-    constructor(code: String? = null, message: String? = null): this(mapOf(
+    constructor(code: String? = null, message: String? = null) : this(hashMapOf(
             "code" to code,
             "message" to message
     ))

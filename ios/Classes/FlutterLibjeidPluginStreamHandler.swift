@@ -6,7 +6,7 @@ class FlutterLibjeidPluginEventStreamHandler: NSObject, FlutterStreamHandler {
     
     func emit(event: FlutterLibjeidEvent) {
         DispatchQueue.main.async {
-            self.eventSink?(event.toJSON());
+            self.eventSink?(event.toDictionary());
         }
     }
 

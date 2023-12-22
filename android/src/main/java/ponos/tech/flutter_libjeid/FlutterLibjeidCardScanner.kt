@@ -24,7 +24,7 @@ interface FlutterLibjeidCardScannerHander {
 
     fun onScanError(error: Exception)
 
-    fun onScanSuccess(data: CardData)
+    fun onScanSuccess(data: HashMap<String, Any?>)
 
     fun onScanCancelled()
 }
@@ -41,7 +41,7 @@ abstract class FlutterLibjeidCardScanner(protected val activity: Activity) : Rea
     }
 
     protected val nfcAdapter: NfcAdapter = NfcAdapter.getDefaultAdapter(activity)
-    private var parser: FlutterLibjeidCardParser<*>? = null
+    private var parser: FlutterLibjeidCardParser? = null
     private var handler: FlutterLibjeidCardScannerHander? = null
     private val uiThreadHandler = Handler(Looper.getMainLooper())
 
@@ -57,7 +57,7 @@ abstract class FlutterLibjeidCardScanner(protected val activity: Activity) : Rea
 
     protected abstract fun stopNfcScanningSession()
 
-    fun startScanning(parser: FlutterLibjeidCardParser<*>, handler: FlutterLibjeidCardScannerHander) {
+    fun startScanning(parser: FlutterLibjeidCardParser, handler: FlutterLibjeidCardScannerHander) {
         if (!nfcScannerDialog.isShowing) {
             nfcScannerDialog.show()
         }
