@@ -33,93 +33,129 @@ LibJeID (Library for Japanese Electronic ID) is a library for smartphones to acc
 
 ## How to use
 
-### 1. Scan My number card
+Heading to [example project](/example) to see the complete example of how to use this library.
 
-You need pass the **Card PIN** of My number card, include 4 characters. Example "xxxx"
-
-```dart
-final result = await FlutterLibjeid().scanINCard(cardPin: "xxxx")
-```
-
-The result return as `Map<String, dynamic>`. If scanning is cancelled, it returns empty `{}`
-
-**Data key and type of result**
-
-|Key          |Type          |Description                                                                   |
-|:----------------------|:----------------------|:-----------------------------------------------------------------------------|
-|in_mynumber|String?|The card number on card face. Free version return `null`|
-|in_mynumber_image|String?|The card number image, return Base64 encode as String. Free version return `null`|
-|in_name|String|The name on card face|
-|in_birth|String| The birthday on card face|
-|in_sex|String| The gender on card face|
-|in_address|String|The address on card face|
-|in_validation|bool?|Return `true` if card is valid. Free version return `null`|
-|in_expire|String|The card expired date|
-|in_birth2|String|The birthday 2 on card face|
-|in_sex2|String| The gender 2 on card face|
-|in_name_image|String|The card name image, return Base64 encode as String|
-|in_address_image|String|The card address image, return Base64 encode as String|
-|in_photo| String| The card photo image, return Base64 encode as String|
-|in_visualap_validation|bool?|Verification of authenticity of card surface AP. Return `true` if is valid. Free version return `null`|
-
-### 2. Scan Residence card
-
-You need pass the **Card Number** of My number card. Example "xxxxxxxxxxxx"
+First create an instance of FlutterLibjeid(), check for the NFC availability, and then subscribe to the events
 
 ```dart
-final result = await FlutterLibjeid().scanRCCard(cardNumber: "xxxxxxxxxxxx")
+final _scanner = FlutterLibjeid();
+
+final isNfcAvailable = await _scanner.isAvailable();
+
+if (!isNfcAvailable) {
+  // Show error message
+  return;
+}
+
+final _subscription = _scanner.eventStream.listen((event) {
+  switch (event) {
+    case FlutterLibjeidEventScanning():
+      // Use .setMessage() to show the message inside the scanning dialog
+      _scanner.setMessage(message: 'Scanning...');
+      break;
+
+    case FlutterLibjeidEventConnecting():
+      _scanner.setMessage(message: 'Connecting...');
+      break;
+
+    case FlutterLibjeidEventParsing():
+      _scanner.setMessage(message: 'Parsing...');
+      break;
+
+    case FlutterLibjeidEventSuccess(data: FlutterLibjeidCardData data):
+      // Use .stopScan() to cancel the scanning process
+      _scanner.stopScan();
+      _onSuccess(data);
+      break;
+
+    case FlutterLibjeidEventFailed(error: FlutterLibjeidError error):
+      _scanner.stopScan();
+      _onError(error);
+      break;
+
+    case FlutterLibjeidEventCancelled():
+        break;
+  }
+});
 ```
 
-The result return as `Map<String, dynamic>`. If scanning is cancelled, it returns empty `{}`
-
-**Data key and type of result**
-
-|Key          |Type          |Description                                                                   |
-|:----------------------|:----------------------|:-----------------------------------------------------------------------------|
-|rc_card_type|String?|The card type name|
-|rc_front_image|String?|The front card image, return Base64 encode as String|
-|rc_photo|String?|The card image, return Base64 encode as String|
-|comprehensive_permission|String|Comprehensive Permission description|
-|individual_permission|String|Individual Permission description|
-|update_status|String| The card update status|
-|rc_signature|String|Valid card signature|
-|rc_address|String|The card address|
-|rc_valid|bool?|Return `true` if card is valid. Free version return `null`|
-
-### 3. Scan Driver License card
-
-You need pass the **Card PIN 1** and **Card PIN 2** of Driver License card, include 4 characters. Example "xxxx"
+And then handling the data/error as needed
 
 ```dart
- final result = await FlutterLibjeid().scanDLCard(
-        cardPin1: 'xxxx',
-        cardPin2: 'xxxx',
-      );
+void _onSuccess(FlutterLibjeidCardData data) {
+  switch (data) {
+    case ResidentCardData():
+      // Do something with the data
+      break;
+
+    case MyNumberCardData():
+      // Do something with the data
+      break;
+
+    case DriverLicenseCardData():
+      // Do something with the data
+      break;
+
+    case PassportCardData():
+      // Do something with the data
+      break;
+  }
+}
+
+void _onError(FlutterLibjeidError error) {
+  switch (error) {
+    case NfcNotAvailableError():
+      // Do something with the error
+      break;
+
+    case NfcTagUnableToConnectError():
+      // Do something with the error
+      break;
+
+    case NfcCardBlockedError():
+      // Do something with the error
+      break;
+
+    case NfcCardTypeMismatchError():
+      // Do something with the error
+      break;
+
+    case InvalidMethodArgumentsError():
+      // Do something with the error
+      break;
+
+    case InvalidCardPinError(int remainingTimes):
+      // Do something with the error
+      break;
+
+    case InvalidCardKeyError():
+      // Do something with the error
+      break;
+
+    case UnknownError():
+      // Do something with the error
+      break;
+  }
+}
 ```
 
-The result return as `Map<String, dynamic>`. If scanning is cancelled, it returns empty `{}`
-
-### 4. Stop scanning
-
-After scanning successfully or throw Error, you should call stop scanning to close NFC session.
-
-Try call this
+Next, calling the scan method you want to use
 
 ```dart
-FlutterLibjeid.stopScan();
+await _scanner.scanResidentCard(cardNumber: 'xxxxxxxxxxxx');
+
+await _scanner.scanMyNumberCard(pin: 'xxxx');
+
+await _scanner.scanDriverLicenseCard(pin1: 'xxxx', pin2: 'xxxx');
+
+await _scanner.scanPassportCard(cardNumber: 'xxxxxxxxxx', birthDate: 'xxxxxxxxxx', expiredDate: 'xxxxxxxxxx');
 ```
 
-### 5. Error codes
+Finally, don't forget to unsubscribe the event stream when you no longer need it
 
-|Code          |Description                                                                   |
-|:----------------------|:-----------------------------------------------------------------------------|
-|not_input_card_number| When pass null or empty card number|
-|not_input_card_pin|  When pass null or empty card pin|
-|nfc_connect_error| Error while connecting NFC, such as: NFC is not support, NFC is off|
-|incorrect_card_number| The card number is incorrect when verifying card number|
-|incorrect_card_pin| The card pin is incorrect when verifying card pin|
-|invalid_card_type| Card type is not support|
-|unknown| Common error|
+```dart
+_subscription.cancel();
+```
 
 ## Issue Tag Connection Lost
 
