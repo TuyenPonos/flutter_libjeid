@@ -12,8 +12,12 @@ class FlutterLibjeidError: Error & Codable {
     }
     
     static func from(_ error: Error) -> FlutterLibjeidError {
-        if error is FlutterLibjeidError {
-            return error as! FlutterLibjeidError
+        if let flutterLibjeidError = error as? FlutterLibjeidError {
+            return flutterLibjeidError
+        }
+        
+        if let jeidError = error as? JeidError {
+            return jeidError.toFlutterLibjeidError()
         }
         
         return FlutterLibjeidError(code: error.localizedDescription)

@@ -54,8 +54,8 @@ class MethodChannelFlutterLibjeid extends FlutterLibjeidPlatform {
     required String pin2,
   }) {
     return methodChannel.invokeMethod('scanDriverLicenseCard', {
-      'pin1': pin1,
-      'pin2': pin2,
+      'pin_1': pin1,
+      'pin_2': pin2,
     });
   }
 

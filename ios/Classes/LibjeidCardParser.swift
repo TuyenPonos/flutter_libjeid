@@ -34,10 +34,10 @@ class LibjeidDriverLicenseCardParser: LibjeidCardParser {
             pin2 = "****"
         }
         
-        guard let pin1 = pin1, let pin2 = pin2 else {
+        guard let pin1 = pin1, let pin2 = pin2, !pin1.isEmpty, !pin2.isEmpty else {
             throw InvalidMethodArgumentsError()
         }
-        
+    
         try ap.verifyPin1(pin1)
         try ap.verifyPin2(pin2)
     }
@@ -53,8 +53,8 @@ class LibjeidDriverLicenseCardParser: LibjeidCardParser {
         let ap = try reader.selectDL()
         
         try self.authenticate(ap: ap)
-        
-        var files = try ap.readFiles()
+    
+        let files = try ap.readFiles()
 
         let commonData = try? files.getCommonData()
         let entries = try? files.getEntries()
@@ -65,22 +65,22 @@ class LibjeidDriverLicenseCardParser: LibjeidCardParser {
 
         let photoSrc = photo?.photoData?.toBase64PngImage()
         let verifyStatus = try? files.validate()
-        
+
         return [
             "card_type": "driver_license",
-            "name": try? entries?.name.toJSON(),
+            "name": entries?.name.toString(),
             "kana": entries?.kana,
-            "alias_name": try? entries?.aliasName.toJSON(),
+            "alias_name": entries?.aliasName.toString(),
             "call_name": entries?.callName,
             "birth_date": entries?.birthDate?.toISOString(),
-            "address": try? entries?.address.toJSON(),
+            "address": entries?.address.toString(),
             "issue_date": commonData?.issueDate,
             "ref_number": entries?.refNumber,
             "color_class": entries?.colorClass,
             "expire_date": commonData?.expireDate,
             "license_number": entries?.licenseNumber,
             "psc_name": entries?.pscName,
-            "registered_domicile": try? registeredDomicile?.registeredDomicile.toJSON(),
+            "registered_domicile": registeredDomicile?.registeredDomicile.toString(),
             "photo": photoSrc,
             "signature_issuer": signature?.issuer,
             "signature_subject": signature?.subject,
@@ -103,7 +103,7 @@ class LibjeidDriverLicenseCardParser: LibjeidCardParser {
     }
 }
 
-// MARK: - MyNumberCardReader
+// MARK: - MyNumberCardParser
 
 @available(iOS 13.0, *)
 class LibjeidMyNumberCardParser: LibjeidCardParser {
@@ -158,7 +158,7 @@ class LibjeidMyNumberCardParser: LibjeidCardParser {
             "nameImage": nameImageSrc,
             "addressImage": addressImageSrc,
             "myNumberImage": myNumberImageSrc,
-            "verified": verified
+            "verified": verified,
         ]
     }
 }
@@ -220,12 +220,12 @@ class LibjeidResidentCardParser: LibjeidCardParser {
             "card_front_photo": cardFrontPhotoSrc,
             "update_status": updateStatus,
             "individual_permission": individualPermission,
-            "comprehensive_permission": comprehensivePermission
+            "comprehensive_permission": comprehensivePermission,
         ]
     }
 }
 
-// MARK: - MyNumberCardReader
+// MARK: - PassportCardParser
 
 @available(iOS 13.0, *)
 class LibjeidPassportCardParser: LibjeidCardParser {

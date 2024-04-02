@@ -1,21 +1,21 @@
 abstract class FlutterLibjeidCardData {
   const FlutterLibjeidCardData();
 
-  Map<String, dynamic> toJSON();
+  Map<String, dynamic> toJson();
 
-  factory FlutterLibjeidCardData.fromJSON(Map<String, dynamic> json) {
+  factory FlutterLibjeidCardData.fromJson(Map json) {
     switch (json['card_type']) {
       case 'resident_card':
-        return ResidentCardData.fromJSON(json);
+        return ResidentCardData.fromJson(json);
 
       case 'my_number':
-        return MyNumberCardData.fromJSON(json);
+        return MyNumberCardData.fromJson(json);
 
       case 'driver_license':
-        return DriverLicenseCardData.fromJSON(json);
+        return DriverLicenseCardData.fromJson(json);
 
       case 'passport':
-        return PassportCardData.fromJSON(json);
+        return PassportCardData.fromJson(json);
 
       default:
         throw Exception('Invalid card type: ${json['type']}');
@@ -76,7 +76,7 @@ class DriverLicenseCardData extends FlutterLibjeidCardData {
     required this.registeredDomicileHistoryRecords,
   });
 
-  factory DriverLicenseCardData.fromJSON(Map<String, dynamic> json) {
+  factory DriverLicenseCardData.fromJson(Map json) {
     return DriverLicenseCardData(
       name: json['name'],
       kana: json['kana'],
@@ -96,31 +96,31 @@ class DriverLicenseCardData extends FlutterLibjeidCardData {
       signatureSubject: json['signature_subject'],
       signatureSKI: json['signature_ski'],
       verified: json['verified'],
-      categories: (json['categories'] as List<Map<String, dynamic>>)
-          .map((category) => DriverLicenseCardDataCategory.fromJSON(category))
+      categories: (json['categories'] as List)
+          .map((category) => DriverLicenseCardDataCategory.fromJson(category))
           .toList(),
-      nameHistoryRecords: (json['name_history_records'] as List<Map<String, dynamic>>)
-          .map((record) => ChangeHistory.fromJSON(record))
+      nameHistoryRecords: (json['name_history_records'] as List)
+          .map((record) => ChangeHistory.fromJson(record))
           .toList(),
-      addressHistoryRecords: (json['address_history_records'] as List<Map<String, dynamic>>)
-          .map((record) => ChangeHistory.fromJSON(record))
+      addressHistoryRecords: (json['address_history_records'] as List)
+          .map((record) => ChangeHistory.fromJson(record))
           .toList(),
-      conditionHistoryRecords: (json['condition_history_records'] as List<Map<String, dynamic>>)
-          .map((record) => ChangeHistory.fromJSON(record))
+      conditionHistoryRecords: (json['condition_history_records'] as List)
+          .map((record) => ChangeHistory.fromJson(record))
           .toList(),
       conditionCancellationHistoryRecords:
-          (json['condition_cancellation_history_records'] as List<Map<String, dynamic>>)
-              .map((record) => ChangeHistory.fromJSON(record))
+          (json['condition_cancellation_history_records'] as List)
+              .map((record) => ChangeHistory.fromJson(record))
               .toList(),
       registeredDomicileHistoryRecords:
-          (json['registered_domicile_history_records'] as List<Map<String, dynamic>>)
-              .map((record) => ChangeHistory.fromJSON(record))
+          (json['registered_domicile_history_records'] as List)
+              .map((record) => ChangeHistory.fromJson(record))
               .toList(),
     );
   }
 
   @override
-  Map<String, dynamic> toJSON() {
+  Map<String, dynamic> toJson() {
     return {
       'name': name,
       'kana': kana,
@@ -140,15 +140,20 @@ class DriverLicenseCardData extends FlutterLibjeidCardData {
       'signature_subject': signatureSubject,
       'signature_ski': signatureSKI,
       'verified': verified,
-      'categories': categories?.map((category) => category.toJSON()).toList(),
-      'name_history_records': nameHistoryRecords.map((record) => record.toJSON()).toList(),
-      'address_history_records': addressHistoryRecords.map((record) => record.toJSON()).toList(),
+      'categories': categories?.map((category) => category.toJson()).toList(),
+      'name_history_records':
+          nameHistoryRecords.map((record) => record.toJson()).toList(),
+      'address_history_records':
+          addressHistoryRecords.map((record) => record.toJson()).toList(),
       'condition_history_records':
-          conditionHistoryRecords.map((record) => record.toJSON()).toList(),
+          conditionHistoryRecords.map((record) => record.toJson()).toList(),
       'condition_cancellation_history_records':
-          conditionCancellationHistoryRecords.map((record) => record.toJSON()).toList(),
-      'registered_domicile_history_records':
-          registeredDomicileHistoryRecords.map((record) => record.toJSON()).toList(),
+          conditionCancellationHistoryRecords
+              .map((record) => record.toJson())
+              .toList(),
+      'registered_domicile_history_records': registeredDomicileHistoryRecords
+          .map((record) => record.toJson())
+          .toList(),
     };
   }
 }
@@ -166,7 +171,7 @@ class DriverLicenseCardDataCategory {
     required this.isLicensed,
   });
 
-  factory DriverLicenseCardDataCategory.fromJSON(Map<String, dynamic> json) {
+  factory DriverLicenseCardDataCategory.fromJson(Map json) {
     return DriverLicenseCardDataCategory(
       tag: json['tag'],
       name: json['name'],
@@ -175,7 +180,7 @@ class DriverLicenseCardDataCategory {
     );
   }
 
-  Map<String, dynamic> toJSON() {
+  Map<String, dynamic> toJson() {
     return {
       'tag': tag,
       'name': name,
@@ -196,7 +201,7 @@ class ChangeHistory {
     required this.psc,
   });
 
-  factory ChangeHistory.fromJSON(Map<String, dynamic> json) {
+  factory ChangeHistory.fromJson(Map json) {
     return ChangeHistory(
       date: json['date'],
       value: json['value'],
@@ -204,7 +209,7 @@ class ChangeHistory {
     );
   }
 
-  Map<String, dynamic> toJSON() {
+  Map<String, dynamic> toJson() {
     return {
       'date': date,
       'value': value,
@@ -240,7 +245,7 @@ class MyNumberCardData extends FlutterLibjeidCardData {
     required this.verified,
   });
 
-  factory MyNumberCardData.fromJSON(Map<String, dynamic> json) {
+  factory MyNumberCardData.fromJson(Map json) {
     return MyNumberCardData(
       myNumber: json['my_number'],
       name: json['name'],
@@ -257,7 +262,7 @@ class MyNumberCardData extends FlutterLibjeidCardData {
   }
 
   @override
-  Map<String, dynamic> toJSON() {
+  Map<String, dynamic> toJson() {
     return {
       'my_number': myNumber,
       'name': name,
@@ -297,7 +302,7 @@ class ResidentCardData extends FlutterLibjeidCardData {
     required this.comprehensivePermission,
   });
 
-  factory ResidentCardData.fromJSON(Map<String, dynamic> json) {
+  factory ResidentCardData.fromJson(Map json) {
     return ResidentCardData(
       cardType: json['card_type'],
       photo: json['photo'],
@@ -312,7 +317,7 @@ class ResidentCardData extends FlutterLibjeidCardData {
   }
 
   @override
-  Map<String, dynamic> toJSON() {
+  Map<String, dynamic> toJson() {
     return {
       'card_type': cardType,
       'photo': photo,
@@ -380,7 +385,7 @@ class PassportCardData extends FlutterLibjeidCardData {
     required this.activeAuthenticationResult,
   });
 
-  factory PassportCardData.fromJSON(Map<String, dynamic> json) {
+  factory PassportCardData.fromJson(Map json) {
     return PassportCardData(
       fid: json['fid'],
       sfid: json['sfid'],
@@ -410,7 +415,7 @@ class PassportCardData extends FlutterLibjeidCardData {
   }
 
   @override
-  Map<String, dynamic> toJSON() {
+  Map<String, dynamic> toJson() {
     return {
       'fid': fid,
       'sfid': sfid,

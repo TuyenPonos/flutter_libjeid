@@ -27,7 +27,7 @@ abstract class FlutterLibjeidEvent {
   final FlutterLibjeidEventType type;
 
   factory FlutterLibjeidEvent.parse(Map map) {
-    final type = FlutterLibjeidEventType.tryParse(map['type']);
+    final type = FlutterLibjeidEventType.tryParse(map['event']);
 
     switch (type) {
       case FlutterLibjeidEventType.scanning:
@@ -40,10 +40,12 @@ abstract class FlutterLibjeidEvent {
         return FlutterLibjeidEventParsing();
 
       case FlutterLibjeidEventType.success:
-        return FlutterLibjeidEventSuccess(FlutterLibjeidCardData.fromJSON(map['data']));
+        return FlutterLibjeidEventSuccess(
+            FlutterLibjeidCardData.fromJson(map['data']));
 
       case FlutterLibjeidEventType.failed:
-        return FlutterLibjeidEventFailed(FlutterLibjeidError.fromJSON(map['data']));
+        return FlutterLibjeidEventFailed(
+            FlutterLibjeidError.fromJson(map['data']));
 
       case FlutterLibjeidEventType.cancelled:
         return FlutterLibjeidEventCancelled();
@@ -71,7 +73,8 @@ class FlutterLibjeidEventParsing extends FlutterLibjeidEvent {
 
 /// Event that will be emitted when the device's NFC reader is successfully read the NFC card data
 class FlutterLibjeidEventSuccess extends FlutterLibjeidEvent {
-  FlutterLibjeidEventSuccess(this.data) : super(FlutterLibjeidEventType.success);
+  FlutterLibjeidEventSuccess(this.data)
+      : super(FlutterLibjeidEventType.success);
 
   final FlutterLibjeidCardData data;
 }

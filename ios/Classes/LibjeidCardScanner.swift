@@ -73,6 +73,9 @@ extension LibjeidCardScanner: NFCTagReaderSessionDelegate {
     }
 
     func tagReaderSession(_ session: NFCTagReaderSession, didInvalidateWithError error: Error) {
+        if let nfcError = error as? NFCReaderError, nfcError.code == .readerSessionInvalidationErrorUserCanceled {
+            return
+        }
         self.delegate?.libjeidCardScanner(self, didFailWithError: error)
     }
     

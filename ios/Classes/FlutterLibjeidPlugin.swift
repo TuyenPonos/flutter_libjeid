@@ -63,9 +63,6 @@ extension FlutterLibjeidPlugin: FlutterPlugin {
                     return
                 }
 
-                // Stop the previous scanning session (if any)
-                self.cardScanner?.stopScanning()
-
                 self.cardScanner = LibjeidCardScanner(parser: parser, delegate: self)
                 self.cardScanner?.startScanning()
             } catch let error as FlutterLibjeidError {
