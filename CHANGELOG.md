@@ -39,3 +39,7 @@
 ## 0.0.10
 
 * Fix some minor issues
+
+## 1.0.0
+
+* Improve code
