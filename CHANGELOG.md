@@ -43,3 +43,31 @@
 ## 1.0.0
 
 * Improve code
+
+## 1.0.1
+
+* Fix Android build issues
+  
+## 1.0.2
+
+* Fix Android build issues
+  
+## 1.0.3
+
+* Fix Android build issues
+
+## 1.0.4
+
+* Fix Android build issues
+
+## 1.0.5
+
+* Fix Android build issues
+
+## 1.0.6
+
+* Fix Android build issues
+
+## 1.0.7
+
+* Fix Android build issues

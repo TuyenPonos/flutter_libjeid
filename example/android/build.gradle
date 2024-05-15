@@ -15,13 +15,6 @@ allprojects {
     repositories {
         google()
         mavenCentral()
-        maven {
-            url 'https://www.osstech.co.jp/download/libjeid/m2/'
-            // for gradle 5.x
-            content {
-                includeGroup "jp.co.osstech"
-            }
-        }
     }
 }
 
