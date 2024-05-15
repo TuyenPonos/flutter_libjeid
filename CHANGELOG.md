@@ -71,3 +71,11 @@
 ## 1.0.7
 
 * Fix Android build issues
+
+## 1.0.8
+
+* Fix Android scan dialog
+  
+## 1.0.9
+
+* Allow cancel scan dialog

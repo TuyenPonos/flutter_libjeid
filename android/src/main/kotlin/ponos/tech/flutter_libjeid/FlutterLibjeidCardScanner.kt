@@ -45,8 +45,8 @@ abstract class FlutterLibjeidCardScanner(protected val activity: Activity) : Rea
     private var handler: FlutterLibjeidCardScannerHander? = null
     private val uiThreadHandler = Handler(Looper.getMainLooper())
 
-    private val nfcScannerDialog = AlertDialog.Builder(activity)
-            .setCancelable(false)
+    private val nfcScannerDialog = AlertDialog.Builder(activity, R.style.Dialog_No_Border)
+            .setCancelable(true)
             .setOnCancelListener { stopScanning() }
             .setView(R.layout.progress_dialog)
             .create()
