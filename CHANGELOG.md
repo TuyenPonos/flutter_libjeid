@@ -79,3 +79,7 @@
 ## 1.0.9
 
 * Allow cancel scan dialog
+
+## 1.1.0
+
+* Fix invalid arguments driver license
