@@ -7,7 +7,6 @@ import jp.co.osstech.libjeid.CardType
 import jp.co.osstech.libjeid.DriverLicenseAP
 import jp.co.osstech.libjeid.EPMRZ
 import jp.co.osstech.libjeid.INTextAP
-import jp.co.osstech.libjeid.INVisualAP
 import jp.co.osstech.libjeid.JeidReader
 import jp.co.osstech.libjeid.PassportAP
 import jp.co.osstech.libjeid.RCKey
@@ -73,7 +72,7 @@ class LibjeidDriverLicenseCardParser(
         val signature = files.signature
 
         val photoSrc = photo.photoBitmapARGB.toBase64PngImage()
-        val verifyStatus = files.validate()
+        val verifyStatus = runCatching { files.validate() }.getOrNull()
 
         return hashMapOf(
                 "card_type" to "driver_license",
@@ -94,7 +93,7 @@ class LibjeidDriverLicenseCardParser(
                 "signature_issuer" to signature.issuer,
                 "signature_subject" to signature.subject,
                 "signature_ski" to Hex.encode(signature.subjectKeyIdentifier, ":"),
-                "verified" to verifyStatus.isValid,
+                "verified" to verifyStatus?.isValid,
                 "categories" to entries.categories.map { cat ->
                     hashMapOf(
                             "tag" to cat.tag,
@@ -115,9 +114,8 @@ class LibjeidDriverLicenseCardParser(
 class LibjeidMyNumberCardParser(
         private val pin: String,
 ) : FlutterLibjeidCardParser() {
-    private fun authenticate(textAp: INTextAP, visualAp: INVisualAP) {
+    private fun authenticate(textAp: INTextAP) {
         textAp.verifyPin(pin)
-        visualAp.verifyPin(pin)
     }
 
     override fun read(tag: Tag): HashMap<String, Any?> {
@@ -129,38 +127,21 @@ class LibjeidMyNumberCardParser(
         }
 
         val textAp = reader.selectINTextAP()
-        val visualAp = reader.selectINVisualAP()
 
-        this.authenticate(textAp = textAp, visualAp = visualAp)
+        this.authenticate(textAp = textAp)
 
         val files = textAp.readFiles()
 
-        val myNumberData = files.myNumber
+        val myNumber = runCatching { files.myNumber.myNumber }.getOrNull()
         val attributes = files.attributes
-
-        val visualFiles = visualAp.readFiles()
-        val visualEntries = visualFiles.entries
-
-        val expire = visualEntries.expire
-        val photoSrc = visualEntries.photoBitmapARGB?.toBase64PngImage()
-        val nameImageSrc = visualEntries.name.toBase64PngImage()
-        val addressImageSrc = visualEntries.addr.toBase64PngImage()
-        val myNumberImageSrc = visualFiles.myNumber.myNumber.toBase64PngImage()
-        val verified = visualFiles.validate().isValid
 
         return hashMapOf(
                 "card_type" to "my_number",
-                "my_number" to myNumberData.myNumber,
+                "my_number" to myNumber,
                 "name" to attributes.name,
                 "address" to attributes.addr,
                 "birth_date" to attributes.birth,
                 "sex" to attributes.sex,
-                "expire_date" to expire,
-                "photo" to photoSrc,
-                "nameImage" to nameImageSrc,
-                "addressImage" to addressImageSrc,
-                "myNumberImage" to myNumberImageSrc,
-                "verified" to verified
         )
     }
 }
@@ -250,8 +231,8 @@ class LibjeidPassportCardParser(
         val dataGroup1Mrz = EPMRZ(dataGroup1.mrz)
 
         val photoSrc = dataGroup2.faceJpeg.toBase64PngImage()
-        val passiveAuthenticationResult = files.validate().isValid
-        val activeAuthenticationResult = ap.activeAuthentication(files)
+        val passiveAuthenticationResult = runCatching { files.validate().isValid }.getOrNull()
+        val activeAuthenticationResult = runCatching { ap.activeAuthentication(files) }.getOrNull()
 
         return hashMapOf(
                 "card_type" to "passport",
