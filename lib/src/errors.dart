@@ -32,6 +32,11 @@ class FlutterLibjeidError extends Error {
         return UnknownError(json['details']);
     }
   }
+
+  @override
+  String toString() {
+    return "$runtimeType($code, $message, $details)";
+  }
 }
 
 class NfcNotAvailableError extends FlutterLibjeidError {

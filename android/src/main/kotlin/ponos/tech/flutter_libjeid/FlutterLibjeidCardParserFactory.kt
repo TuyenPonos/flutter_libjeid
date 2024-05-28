@@ -39,8 +39,8 @@ abstract class FlutterLibjeidCardParserFactory {
                 }
 
                 "scanDriverLicenseCard" -> {
-                    val pin1 = call.argument<String>("pin1")
-                    val pin2 = call.argument<String>("pin2")
+                    val pin1 = call.argument<String>("pin_1")
+                    val pin2 = call.argument<String>("pin_2")
 
                     if (pin1 == null || pin2 == null) {
                         throw InvalidMethodArgumentsException()
