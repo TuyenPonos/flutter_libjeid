@@ -83,3 +83,7 @@
 ## 1.1.0
 
 * Fix invalid arguments driver license
+
+## 1.1.1
+
+* Add format name and address for driver license

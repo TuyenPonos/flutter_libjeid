@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 abstract class FlutterLibjeidCardData {
   const FlutterLibjeidCardData();
 
@@ -117,6 +119,19 @@ class DriverLicenseCardData extends FlutterLibjeidCardData {
               .map((record) => ChangeHistory.fromJson(record))
               .toList(),
     );
+  }
+
+  String get formattedName {
+    final items =
+        (jsonDecode(name) as List).map((e) => DataExplain.fromJson(e)).toList();
+    return items.map((e) => e.toString()).join('');
+  }
+
+  String get formattedAddress {
+    final items = (jsonDecode(address) as List)
+        .map((e) => DataExplain.fromJson(e))
+        .toList();
+    return items.map((e) => e.toString()).join('');
   }
 
   @override
@@ -442,5 +457,27 @@ class PassportCardData extends FlutterLibjeidCardData {
       'passive_authentication_result': passiveAuthenticationResult,
       'active_authentication_result': activeAuthenticationResult,
     };
+  }
+}
+
+class DataExplain {
+  final String type;
+  final String value;
+
+  DataExplain({
+    required this.type,
+    required this.value,
+  });
+
+  factory DataExplain.fromJson(Map<String, dynamic> json) {
+    return DataExplain(
+      type: json['type'],
+      value: json['value'],
+    );
+  }
+
+  @override
+  String toString() {
+    return value;
   }
 }
