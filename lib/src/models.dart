@@ -134,6 +134,13 @@ class DriverLicenseCardData extends FlutterLibjeidCardData {
     return items.map((e) => e.toString()).join('');
   }
 
+  String get formattedDomicile {
+    final items = (jsonDecode(registeredDomicile) as List)
+        .map((e) => DataExplain.fromJson(e))
+        .toList();
+    return items.map((e) => e.toString()).join('');
+  }
+
   @override
   Map<String, dynamic> toJson() {
     return {

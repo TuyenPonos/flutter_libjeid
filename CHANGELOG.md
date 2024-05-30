@@ -87,3 +87,7 @@
 ## 1.1.1
 
 * Add format name and address for driver license
+  
+## 1.1.2
+
+* Add format Domicile for driver license
