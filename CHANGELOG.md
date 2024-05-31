@@ -95,3 +95,7 @@
 ## 1.1.3
 
 * Add null-able for registeredDomicile
+
+## 1.1.4
+
+* Fix formattedName error

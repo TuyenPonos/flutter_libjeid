@@ -122,26 +122,39 @@ class DriverLicenseCardData extends FlutterLibjeidCardData {
   }
 
   String get formattedName {
-    final items =
-        (jsonDecode(name) as List).map((e) => DataExplain.fromJson(e)).toList();
-    return items.map((e) => e.toString()).join('');
+    try {
+      final items = (jsonDecode(name) as List)
+          .map((e) => DataExplain.fromJson(e))
+          .toList();
+      return items.map((e) => e.toString()).join('');
+    } catch (e) {
+      return name;
+    }
   }
 
   String get formattedAddress {
-    final items = (jsonDecode(address) as List)
-        .map((e) => DataExplain.fromJson(e))
-        .toList();
-    return items.map((e) => e.toString()).join('');
+    try {
+      final items = (jsonDecode(address) as List)
+          .map((e) => DataExplain.fromJson(e))
+          .toList();
+      return items.map((e) => e.toString()).join('');
+    } catch (e) {
+      return address;
+    }
   }
 
   String? get formattedDomicile {
     if (registeredDomicile == null) {
       return null;
     }
-    final items = (jsonDecode(registeredDomicile!) as List)
-        .map((e) => DataExplain.fromJson(e))
-        .toList();
-    return items.map((e) => e.toString()).join('');
+    try {
+      final items = (jsonDecode(registeredDomicile!) as List)
+          .map((e) => DataExplain.fromJson(e))
+          .toList();
+      return items.map((e) => e.toString()).join('');
+    } catch (e) {
+      return registeredDomicile;
+    }
   }
 
   @override
