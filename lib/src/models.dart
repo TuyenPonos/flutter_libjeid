@@ -38,7 +38,7 @@ class DriverLicenseCardData extends FlutterLibjeidCardData {
   final String? expireDate;
   final String? licenseNumber;
   final String? pscName;
-  final String registeredDomicile;
+  final String? registeredDomicile;
   final String? photo;
   final String? signatureIssuer;
   final String? signatureSubject;
@@ -134,8 +134,11 @@ class DriverLicenseCardData extends FlutterLibjeidCardData {
     return items.map((e) => e.toString()).join('');
   }
 
-  String get formattedDomicile {
-    final items = (jsonDecode(registeredDomicile) as List)
+  String? get formattedDomicile {
+    if (registeredDomicile == null) {
+      return null;
+    }
+    final items = (jsonDecode(registeredDomicile!) as List)
         .map((e) => DataExplain.fromJson(e))
         .toList();
     return items.map((e) => e.toString()).join('');

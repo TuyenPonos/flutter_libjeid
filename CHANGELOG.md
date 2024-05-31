@@ -91,3 +91,7 @@
 ## 1.1.2
 
 * Add format Domicile for driver license
+
+## 1.1.3
+
+* Add null-able for registeredDomicile
