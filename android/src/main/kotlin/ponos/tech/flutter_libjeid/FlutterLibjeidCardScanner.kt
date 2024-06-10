@@ -13,6 +13,9 @@ import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.view.Gravity
+import android.widget.Button
+import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.annotation.RequiresApi
 import io.flutter.plugin.common.PluginRegistry
@@ -44,12 +47,23 @@ abstract class FlutterLibjeidCardScanner(protected val activity: Activity) : Rea
     private var parser: FlutterLibjeidCardParser? = null
     private var handler: FlutterLibjeidCardScannerHander? = null
     private val uiThreadHandler = Handler(Looper.getMainLooper())
+    private fun createDialog(): AlertDialog {
+        val builder = AlertDialog.Builder(activity, R.style.Dialog_No_Border)
+        val view = activity.layoutInflater.inflate(R.layout.progress_dialog, null)
+        builder.setView(view)
+        builder.setOnCancelListener{ stopScanning() }
+        builder.setCancelable(false)
+        val dialog = builder.create()
+        val cancelButton = view.findViewById<Button>(R.id.cancel_button)
+        cancelButton.setOnClickListener {
+            dialog.cancel()
+        }
+        return dialog;
+    }
 
-    private val nfcScannerDialog = AlertDialog.Builder(activity, R.style.Dialog_No_Border)
-            .setCancelable(true)
-            .setOnCancelListener { stopScanning() }
-            .setView(R.layout.progress_dialog)
-            .create()
+    private val nfcScannerDialog: AlertDialog = createDialog()
+
+
 
     fun isAvailable(): Boolean = nfcAdapter.isEnabled
 

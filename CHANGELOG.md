@@ -99,3 +99,16 @@
 ## 1.1.4
 
 * Fix formattedName error
+
+## 1.1.5
+
+* Add cancel button while scanning Android
+  
+## 1.1.6
+
+* Add cancel button while scanning Android
+
+## 1.1.7
+
+* Add cancel button while scanning Android
+  
