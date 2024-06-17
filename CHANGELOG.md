@@ -112,3 +112,6 @@
 
 * Add cancel button while scanning Android
   
+## 1.1.8
+
+* Fix Android auto show modal scanning
