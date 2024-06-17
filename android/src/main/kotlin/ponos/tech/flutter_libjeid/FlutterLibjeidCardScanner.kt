@@ -13,9 +13,7 @@ import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
-import android.view.Gravity
 import android.widget.Button
-import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.annotation.RequiresApi
 import io.flutter.plugin.common.PluginRegistry
@@ -61,9 +59,7 @@ abstract class FlutterLibjeidCardScanner(protected val activity: Activity) : Rea
         return dialog;
     }
 
-    private val nfcScannerDialog: AlertDialog = createDialog()
-
-
+    private var nfcScannerDialog: AlertDialog? = null
 
     fun isAvailable(): Boolean = nfcAdapter.isEnabled
 
@@ -72,9 +68,11 @@ abstract class FlutterLibjeidCardScanner(protected val activity: Activity) : Rea
     protected abstract fun stopNfcScanningSession()
 
     fun startScanning(parser: FlutterLibjeidCardParser, handler: FlutterLibjeidCardScannerHander) {
-        if (!nfcScannerDialog.isShowing) {
-            nfcScannerDialog.show()
+        if (nfcScannerDialog?.isShowing == true) {
+            nfcScannerDialog?.dismiss()
         }
+        nfcScannerDialog = createDialog()
+        nfcScannerDialog!!.show()
 
         this.parser = parser
         this.handler = handler
@@ -84,17 +82,18 @@ abstract class FlutterLibjeidCardScanner(protected val activity: Activity) : Rea
     }
 
     fun setMessage(message: String) {
-        if (nfcScannerDialog == null || !nfcScannerDialog.isShowing) return
+        if (nfcScannerDialog?.isShowing != true) return
 
-        val messageView = nfcScannerDialog.findViewById<TextView>(R.id.progress_message)
+        val messageView = nfcScannerDialog!!.findViewById<TextView>(R.id.progress_message)
         uiThreadHandler.post { messageView.text = message }
     }
 
     fun stopScanning(errorMessage: String? = null) {
         if (errorMessage != null) {
             setMessage(errorMessage)
-        } else if (nfcScannerDialog.isShowing) {
-            nfcScannerDialog.hide()
+        } else if (nfcScannerDialog?.isShowing == true) {
+            nfcScannerDialog!!.dismiss()
+            nfcScannerDialog = null
         }
 
         stopNfcScanningSession()
